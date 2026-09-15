@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>비정한 다큐멘터리 숏츠 생성기</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <h1>비정한 다큐멘터리 숏츠 생성기</h1>
+      <p class="subtitle">주제만 입력하면 대본 → 이미지 → 영상 → 자막 → 합성까지 자동 생성</p>
+    </header>
+
+    <main class="app-main">
+      <section class="control-panel">
+        <label for="topic-input">주제 키워드</label>
+        <input id="topic-input" type="text" placeholder="예: 심해 생물의 생존 전략" maxlength="200" />
+        <button id="generate-btn">숏츠 생성하기</button>
+
+        <div id="progress-wrap" class="progress-wrap hidden">
+          <div class="progress-stage" id="progress-stage">대기 중</div>
+          <div class="progress-bar-outer">
+            <div class="progress-bar-inner" id="progress-bar-inner"></div>
+          </div>
+          <div class="progress-percent" id="progress-percent">0%</div>
+        </div>
+
+        <div id="error-box" class="error-box hidden"></div>
+      </section>
+
+      <section class="preview-panel">
+        <div class="phone-frame">
+          <video id="preview-video" controls playsinline></video>
+          <div id="preview-placeholder" class="preview-placeholder">9:16 미리보기</div>
+        </div>
+        <a id="download-link" class="download-btn hidden" download>MP4 다운로드</a>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

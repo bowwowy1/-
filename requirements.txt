@@ -1,0 +1,21 @@
+# ===== Web Framework =====
+Flask==3.0.3
+python-dotenv==1.0.1
+
+# ===== HTTP / Auth =====
+requests==2.32.3
+PyJWT==2.9.0
+
+# ===== Generative AI SDKs =====
+google-generativeai==0.8.3
+openai==1.51.2
+
+# ===== Video / Audio Editing =====
+moviepy==1.0.3
+imageio==2.35.1
+imageio-ffmpeg==0.5.1
+numpy==1.26.4
+Pillow==10.4.0
+
+# ===== Misc =====
+Werkzeug==3.0.4
