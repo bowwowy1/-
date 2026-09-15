@@ -1,0 +1,16 @@
+{
+  "name": "shorts-storyboard-video-generator",
+  "version": "1.0.0",
+  "description": "주제 입력 -> 대본/스토리보드 생성 -> 확정 -> 컷별 이미지/영상 생성 파이프라인",
+  "type": "commonjs",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "uuid": "^9.0.1"
+  }
+}

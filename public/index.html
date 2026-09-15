@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>숏폼 대본/스토리보드/영상 생성기</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header>
+  <h1>숏폼 대본 · 스토리보드 · 영상 생성기</h1>
+  <p class="sub">주제 입력 → 대본 → 스토리보드 확정 → 컷별 이미지/영상 생성 (TTS·편집은 CapCut에서 직접 진행)</p>
+</header>
+
+<main>
+  <section id="topic-section" class="card">
+    <h2>1. 주제 입력</h2>
+    <div class="row">
+      <input id="topic-input" type="text" placeholder="예) 에티오피아 무르시족 입술 접시" />
+      <button id="create-project-btn">대본 생성</button>
+    </div>
+    <p class="hint" id="topic-status"></p>
+  </section>
+
+  <section id="script-section" class="card hidden">
+    <h2>2. 대본 확인/수정</h2>
+    <textarea id="script-text" rows="10"></textarea>
+    <div class="row">
+      <button id="save-script-btn">대본 저장</button>
+      <button id="regen-script-btn" class="secondary">대본 재생성</button>
+      <button id="make-storyboard-btn" class="primary">스토리보드 생성 →</button>
+    </div>
+    <p class="hint" id="script-status"></p>
+  </section>
+
+  <section id="storyboard-section" class="card hidden">
+    <h2>3. 스토리보드 확인/수정</h2>
+    <div id="cuts-list"></div>
+    <div class="row">
+      <button id="add-cut-btn" class="secondary">+ 컷 추가</button>
+      <button id="confirm-storyboard-btn" class="primary">스토리보드 확정 →</button>
+    </div>
+    <p class="hint" id="storyboard-status"></p>
+  </section>
+
+  <section id="generate-section" class="card hidden">
+    <h2>4. 컷별 이미지/영상 생성</h2>
+    <div class="row">
+      <button id="start-generate-btn" class="primary">영상 생성 시작</button>
+      <button id="unlock-btn" class="secondary">잠금 해제 (다시 편집)</button>
+    </div>
+    <div id="generate-list"></div>
+    <p class="hint">생성이 끝난 mp4는 다운로드해서 CapCut에서 음성/자막/편집을 진행하세요.</p>
+  </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
