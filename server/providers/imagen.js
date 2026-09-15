@@ -1,7 +1,7 @@
 const fs = require('fs');
 
 const MOCK_MODE = process.env.MOCK_MODE === 'true' || !process.env.GOOGLE_API_KEY;
-const MODEL = process.env.GEMINI_IMAGE_MODEL || 'imagen-4.0-generate-001';
+const MODEL = process.env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image';
 const API_KEY = process.env.GOOGLE_API_KEY;
 
 // 1x1 투명 PNG (mock 모드 placeholder)
@@ -19,12 +19,13 @@ async function generateImage(prompt) {
     return { mimeType: 'image/png', buffer: PLACEHOLDER_PNG };
   }
 
-  // NOTE: Imagen REST 스펙은 Google 쪽에서 변경될 수 있습니다.
-  // 최신 요청/응답 필드는 https://ai.google.dev (Gemini API - Image generation 문서)에서 확인하세요.
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:predict?key=${API_KEY}`;
+  // 이 계정은 Imagen(predict) API가 아니라 Gemini 네이티브 이미지 생성
+  // 모델(generateContent 방식)에 접근 권한이 있어 이 방식을 사용한다.
+  // 사용 가능한 모델 목록은 GET /v1beta/models?key=... 로 확인 가능.
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
   const body = {
-    instances: [{ prompt }],
-    parameters: { sampleCount: 1, aspectRatio: '9:16' },
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { imageConfig: { aspectRatio: '9:16' } },
   };
 
   const res = await fetch(url, {
@@ -35,18 +36,19 @@ async function generateImage(prompt) {
 
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`Imagen API 오류 (${res.status}): ${errText}`);
+    throw new Error(`이미지 생성 API 오류 (${res.status}): ${errText}`);
   }
 
   const data = await res.json();
-  const prediction = data?.predictions?.[0];
-  if (!prediction?.bytesBase64Encoded) {
-    throw new Error('Imagen 응답에서 이미지를 찾을 수 없습니다: ' + JSON.stringify(data).slice(0, 500));
+  const parts = data?.candidates?.[0]?.content?.parts || [];
+  const imagePart = parts.find((p) => p.inlineData?.data);
+  if (!imagePart) {
+    throw new Error('이미지 생성 응답에서 이미지를 찾을 수 없습니다: ' + JSON.stringify(data).slice(0, 500));
   }
 
   return {
-    mimeType: prediction.mimeType || 'image/png',
-    buffer: Buffer.from(prediction.bytesBase64Encoded, 'base64'),
+    mimeType: imagePart.inlineData.mimeType || 'image/png',
+    buffer: Buffer.from(imagePart.inlineData.data, 'base64'),
   };
 }
 

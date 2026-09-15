@@ -28,11 +28,13 @@ npm start
 
 ```
 GEMINI_TEXT_MODEL=gemini-2.5-flash
-GEMINI_IMAGE_MODEL=imagen-4.0-generate-001
-GEMINI_VIDEO_MODEL=veo-3.0-generate-001
+GEMINI_IMAGE_MODEL=gemini-2.5-flash-image
+GEMINI_VIDEO_MODEL=veo-3.1-generate-preview
 ```
 
-⚠️ Google이 모델명/REST 응답 스펙을 바꾸는 경우가 있습니다. 특히 `server/providers/veo.js`(영상 생성, long-running operation 폴링 방식)는 정확한 최신 요청/응답 필드를 개발 시점에 검증하지 못했으므로, 실제 키로 처음 호출했을 때 에러가 나면 에러 메시지를 참고해서 해당 파일의 필드명을 [Google AI 개발자 문서](https://ai.google.dev) (Gemini API의 이미지/영상 생성 섹션)에 맞게 조정해야 할 수 있습니다. `server/providers/imagen.js`, `server/providers/geminiText.js`는 비교적 안정적인 REST 패턴을 사용합니다.
+실제 API 키로 대본/스토리보드 생성, 이미지 생성(Gemini 네이티브 이미지 생성, `generateContent` + `imageConfig.aspectRatio: "9:16"`), 영상 생성(Veo `predictLongRunning` 폴링)까지 전 구간을 검증했습니다. Imagen(`predict`) API가 아니라 Gemini 이미지 생성 모델을 쓰는 이유는 계정별로 활성화된 모델이 다르기 때문입니다 — 사용 가능한 모델 목록은 `GET /v1beta/models?key=API_KEY`로 직접 확인할 수 있고, 계정에 따라 `GEMINI_IMAGE_MODEL`/`GEMINI_VIDEO_MODEL` 값을 바꿔야 할 수 있습니다.
+
+⚠️ Google이 모델명/REST 응답 스펙을 바꾸는 경우가 있습니다. 에러가 나면 위 명령으로 계정에서 실제 지원하는 모델명을 먼저 확인하세요.
 
 ## 구조
 
