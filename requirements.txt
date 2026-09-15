@@ -14,8 +14,10 @@ openai==1.51.2
 moviepy==1.0.3
 imageio==2.35.1
 imageio-ffmpeg==0.5.1
+# moviepy==1.0.3의 resize 구현이 Pillow의 Image.ANTIALIAS 상수를 사용하는데
+# 이 상수는 Pillow 10부터 제거되어 9.x로 고정한다 (textbbox/textlength는 9.x에서도 지원됨).
 numpy==1.26.4
-Pillow==10.4.0
+Pillow==9.5.0
 
 # ===== Misc =====
 Werkzeug==3.0.4
