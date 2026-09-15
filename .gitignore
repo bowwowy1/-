@@ -10,3 +10,5 @@ output/*
 *.png
 *.jpg
 !assets/**/.gitkeep
+# 로컬 테스트용으로 임시로 받은 폰트 (배포물 아님)
+fonts_test/
