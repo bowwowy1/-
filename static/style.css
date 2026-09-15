@@ -8,7 +8,7 @@ body {
 }
 
 .app {
-  max-width: 960px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 32px 20px 60px;
 }
@@ -32,8 +32,8 @@ body {
 }
 
 .control-panel {
-  flex: 1 1 320px;
-  min-width: 280px;
+  flex: 0 0 300px;
+  min-width: 260px;
 }
 
 .control-panel label {
@@ -114,48 +114,105 @@ body {
   white-space: pre-wrap;
 }
 
-.preview-panel {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-}
-
-.phone-frame {
-  position: relative;
-  width: 260px;
-  aspect-ratio: 9 / 16;
-  border-radius: 22px;
-  border: 4px solid #2c2c34;
-  background: #000;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-#preview-video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: none;
-}
-
-.preview-placeholder {
-  color: #55555f;
-  font-size: 13px;
-}
-
 .download-btn {
-  display: inline-block;
-  padding: 10px 22px;
+  display: block;
+  margin-top: 20px;
+  padding: 12px 20px;
   border-radius: 999px;
   background: #21212a;
   border: 1px solid #3a3a45;
   color: #fff;
   text-decoration: none;
   font-size: 13px;
+  text-align: center;
+}
+
+.result-panel {
+  flex: 1 1 500px;
+  min-width: 280px;
+}
+
+.script-box {
+  background: #17171d;
+  border: 1px solid #26262e;
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+
+.script-box h2 {
+  margin: 0 0 10px;
+  font-size: 17px;
+}
+
+.script-full {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #cfcfd6;
+  white-space: pre-wrap;
+}
+
+.narration-audio {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.scene-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px;
+}
+
+.scene-card {
+  background: #17171d;
+  border: 1px solid #26262e;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.scene-card video,
+.scene-card img {
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  object-fit: cover;
+  background: #000;
+  display: block;
+}
+
+.scene-card .scene-body {
+  padding: 10px;
+}
+
+.scene-card .scene-no {
+  font-size: 11px;
+  color: #ffd600;
+  font-weight: 700;
+}
+
+.scene-card .scene-narration {
+  font-size: 12px;
+  color: #d6d6de;
+  margin: 4px 0 8px;
+  line-height: 1.4;
+}
+
+.scene-card .scene-links {
+  display: flex;
+  gap: 8px;
+}
+
+.scene-card .scene-links a {
+  flex: 1;
+  text-align: center;
+  font-size: 11px;
+  padding: 6px 0;
+  border-radius: 6px;
+  background: #21212a;
+  color: #fff;
+  text-decoration: none;
+  border: 1px solid #33333d;
 }
 
 .hidden {
