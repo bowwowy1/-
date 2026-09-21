@@ -273,44 +273,130 @@ def extract_legal_claims(body_html: str) -> list[str]:
     return [c for c in data.get("claims", []) if isinstance(c, str) and c.strip()]
 
 
+def _collect_search_urls(resp) -> list[str]:
+    """응답 안의 web_search_tool_result 블록에서 URL 목록을 뽑는다."""
+    urls: list[str] = []
+    for block in resp.content:
+        if getattr(block, "type", None) != "web_search_tool_result":
+            continue
+        content = getattr(block, "content", None)
+        if not isinstance(content, list):
+            continue
+        for item in content:
+            url = None
+            if hasattr(item, "url"):
+                url = getattr(item, "url", None)
+            elif isinstance(item, dict):
+                url = item.get("url")
+            if isinstance(url, str) and url:
+                urls.append(url)
+    return urls
+
+
+def _find_submit_verdict(resp):
+    for block in resp.content:
+        if (
+            getattr(block, "type", None) == "tool_use"
+            and getattr(block, "name", None) == VERIFY_TOOL["name"]
+        ):
+            return block
+    return None
+
+
 def verify_claim(claim: str) -> dict:
+    """web_search + submit_verdict 다중 tool 루프. 최대 3회 반복.
+    검색된 URL이 없으면 verdict 를 '근거미발견'으로 강제한다."""
     client = Anthropic()
-    resp = client.messages.create(
-        model=MODEL_ID,
-        max_tokens=8000,
-        tools=[
-            {"type": "web_search_20250305", "name": "web_search", "max_uses": 3},
-            VERIFY_TOOL,
-        ],
-        tool_choice={"type": "tool", "name": VERIFY_TOOL["name"]},
-        system=(
-            "너는 여행자가 알아야 할 법률·처벌 주장을 정부·대사관·공신력 있는 "
-            "기관(외교부, 현지 정부기관, 대사관 공지, 국제기구 등) 문서로 검증하는 "
-            "도구다. 가능하면 web_search 로 실제 출처를 먼저 확인한 뒤, "
-            "반드시 submit_verdict 도구를 호출해서 최종 판정을 넘겨라."
+    system_prompt = (
+        "너는 여행자가 알아야 할 법률·처벌 주장을 정부·대사관·공신력 있는 "
+        "기관(외교부, 현지 정부기관, 대사관 공지, 국제기구 등) 문서로 검증하는 "
+        "도구다.\n"
+        "\n"
+        "필수 순서:\n"
+        "1) 먼저 web_search 도구로 실제 출처를 검색한다.\n"
+        "2) 검색 결과를 근거로 submit_verdict 도구를 호출해 최종 판정을 제출한다.\n"
+        "\n"
+        "엄격한 규칙:\n"
+        "- 사전 지식만으로는 절대 '근거있음' 판정을 내리지 마라.\n"
+        "- web_search 결과에 신뢰할 만한 URL이 없으면 verdict 는 반드시 '근거미발견'.\n"
+        "- 검색이 충분하다고 판단되면 반드시 submit_verdict 를 호출해 마무리하라."
+    )
+    messages: list[dict] = [{
+        "role": "user",
+        "content": (
+            "아래 주장을 검증하라. 반드시 web_search 로 먼저 조사한 뒤 "
+            "submit_verdict 로 결과를 넘겨라.\n"
+            "- 정부·대사관·공신력 있는 기관 문서에서 확인되면 verdict: 근거있음\n"
+            "- 신뢰할 만한 출처를 찾지 못하거나 확인이 안 되면 verdict: 근거미발견\n"
+            "- 신뢰할 만한 출처가 주장과 반대되면 verdict: 상충\n"
+            "sources 에는 실제로 확인한 URL만 넣어라. 없으면 빈 배열.\n"
+            "summary 는 1~2문장으로 근거를 요약하라.\n\n"
+            f"주장: {claim}"
         ),
-        messages=[{
+    }]
+    tools = [
+        {"type": "web_search_20250305", "name": "web_search", "max_uses": 3},
+        VERIFY_TOOL,
+    ]
+
+    all_search_urls: list[str] = []
+    verdict_data: dict | None = None
+    last_resp = None
+
+    for _ in range(3):
+        resp = client.messages.create(
+            model=MODEL_ID,
+            max_tokens=8000,
+            tools=tools,
+            tool_choice={"type": "any"},
+            system=system_prompt,
+            messages=messages,
+        )
+        last_resp = resp
+        all_search_urls.extend(_collect_search_urls(resp))
+
+        submit_block = _find_submit_verdict(resp)
+        if submit_block is not None:
+            verdict_data = dict(submit_block.input)
+            break
+
+        # submit_verdict 아직 없음 → 응답을 대화에 넣고 재호출
+        messages.append({"role": "assistant", "content": resp.content})
+        messages.append({
             "role": "user",
             "content": (
-                "아래 주장을 검증하라.\n"
-                "- 정부·대사관·공신력 있는 기관 문서에서 확인되면 verdict: 근거있음\n"
-                "- 신뢰할 만한 출처를 찾지 못하거나 확인이 안 되면 verdict: 근거미발견\n"
-                "- 신뢰할 만한 출처가 주장과 반대되면 verdict: 상충\n"
-                "sources 에는 실제로 확인한 URL만 넣어라. 없으면 빈 배열.\n"
-                "summary 는 1~2문장으로 근거를 요약하라. 확인이 안 되면 그 사유를 적어라.\n\n"
-                f"주장: {claim}"
+                "검색이 충분하다. 이제 submit_verdict 도구를 호출해 최종 판정을 "
+                "제출하라. 신뢰할 만한 URL을 찾지 못했다면 verdict 는 '근거미발견' "
+                "이어야 한다."
             ),
-        }],
-    )
-    data = _extract_tool_input(resp, tool_name=VERIFY_TOOL["name"])
-    verdict = data.get("verdict", "근거미발견")
+        })
+
+    if verdict_data is None:
+        # 3회 안에 submit_verdict 를 못 받았다. raw 를 실어 에러로 던진다.
+        try:
+            _extract_tool_input(last_resp, tool_name=VERIFY_TOOL["name"])
+        except ResponseParseError:
+            raise
+        raise ResponseParseError(
+            "3회 반복 후에도 submit_verdict 호출이 없었습니다.",
+            f"수집된 web_search URL: {all_search_urls}",
+            getattr(last_resp, "stop_reason", None),
+        )
+
+    verdict = verdict_data.get("verdict", "근거미발견")
     if verdict not in ("근거있음", "근거미발견", "상충"):
         verdict = "근거미발견"
-    return {
-        "verdict": verdict,
-        "sources": [s for s in data.get("sources", []) if isinstance(s, str)],
-        "summary": data.get("summary", ""),
-    }
+    sources = [s for s in verdict_data.get("sources", []) if isinstance(s, str)]
+    summary = verdict_data.get("summary", "") or ""
+
+    # 웹 검색에서 URL을 하나도 수집하지 못했다면 판정 강제 다운그레이드.
+    # (모델이 사전 지식만으로 근거있음/상충 판정을 내는 것을 차단)
+    if not all_search_urls:
+        verdict = "근거미발견"
+        prefix = "웹 검색 결과 없음. "
+        summary = prefix + summary if summary else prefix.strip()
+
+    return {"verdict": verdict, "sources": sources, "summary": summary}
 
 
 def render_verification_table(rows: list[dict]) -> None:
