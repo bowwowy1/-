@@ -1,3 +1,4 @@
+import html as html_lib
 import json
 import re
 from datetime import date
@@ -119,6 +120,114 @@ def generate(country: str, trip_type: str, references: str, notes: str) -> dict:
     return json.loads(strip_code_fence(text))
 
 
+def _parse_json_from_response(resp) -> dict:
+    text_blocks = [b.text for b in resp.content if b.type == "text"]
+    for candidate in reversed(text_blocks):
+        stripped = strip_code_fence(candidate)
+        try:
+            return json.loads(stripped)
+        except json.JSONDecodeError:
+            match = re.search(r"\{.*\}", stripped, re.DOTALL)
+            if match:
+                try:
+                    return json.loads(match.group(0))
+                except json.JSONDecodeError:
+                    continue
+    raise ValueError("응답에서 JSON을 찾지 못했습니다.")
+
+
+def extract_legal_claims(body_html: str) -> list[str]:
+    client = Anthropic()
+    resp = client.messages.create(
+        model=MODEL_ID,
+        max_tokens=4000,
+        system="너는 텍스트에서 법률·처벌·규제 관련 사실 주장을 추출하는 도구다.",
+        messages=[{
+            "role": "user",
+            "content": (
+                "아래 HTML 본문에서 법률·처벌·비자·과태료·금지행위·벌금·구금 등과 "
+                "관련된 사실 주장 문장만 추출하라.\n"
+                "- 태그를 제거하고 순수 한 문장으로 만들어라.\n"
+                "- 각 문장은 그 자체로 검증 가능한 단독 문장이어야 한다.\n"
+                "- 이미 '※ 확인 필요' 로 표시된 문장은 제외한다.\n"
+                "- 관련 주장이 없으면 빈 배열을 반환하라.\n"
+                "JSON 하나만 응답. 다른 설명 금지.\n"
+                '{"claims": ["문장1", "문장2", ...]}\n\n'
+                f"본문:\n{body_html}"
+            ),
+        }],
+    )
+    data = _parse_json_from_response(resp)
+    return [c for c in data.get("claims", []) if isinstance(c, str) and c.strip()]
+
+
+def verify_claim(claim: str) -> dict:
+    client = Anthropic()
+    resp = client.messages.create(
+        model=MODEL_ID,
+        max_tokens=4000,
+        tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 3}],
+        system=(
+            "너는 여행자가 알아야 할 법률·처벌 주장을 정부·대사관·공신력 있는 "
+            "기관(외교부, 현지 정부기관, 대사관 공지, 국제기구 등) 문서로 검증하는 "
+            "도구다. 반드시 web_search 도구를 사용해 실제 출처를 찾아 판정하라."
+        ),
+        messages=[{
+            "role": "user",
+            "content": (
+                "아래 주장을 검증하라.\n"
+                '- 정부·대사관·공신력 있는 기관 문서에서 확인되면 verdict: "근거있음"\n'
+                '- 신뢰할 만한 출처를 찾지 못하거나 확인이 안 되면 verdict: "근거미발견"\n'
+                '- 신뢰할 만한 출처가 주장과 반대되면 verdict: "상충"\n'
+                "sources 에는 실제로 확인한 URL만 넣어라. 없으면 빈 배열.\n"
+                "summary 는 1~2문장으로 검색 근거를 요약하라. 확인이 안 되면 그 사유를.\n"
+                "JSON 하나만 응답. 다른 설명 금지.\n"
+                '{"verdict": "근거있음|근거미발견|상충", "sources": ["URL", ...], "summary": "요약"}\n\n'
+                f"주장: {claim}"
+            ),
+        }],
+    )
+    data = _parse_json_from_response(resp)
+    verdict = data.get("verdict", "근거미발견")
+    if verdict not in ("근거있음", "근거미발견", "상충"):
+        verdict = "근거미발견"
+    return {
+        "verdict": verdict,
+        "sources": [s for s in data.get("sources", []) if isinstance(s, str)],
+        "summary": data.get("summary", ""),
+    }
+
+
+def render_verification_table(rows: list[dict]) -> None:
+    def cell(text: str) -> str:
+        return html_lib.escape(text).replace("\n", "<br>")
+
+    parts = [
+        '<table style="width:100%;border-collapse:collapse;font-size:14px;">',
+        '<thead><tr style="background:#f1f3f5;">',
+        '<th style="text-align:left;border:1px solid #dee2e6;padding:8px;width:32%;">주장 문장</th>',
+        '<th style="text-align:left;border:1px solid #dee2e6;padding:8px;width:10%;">판정</th>',
+        '<th style="text-align:left;border:1px solid #dee2e6;padding:8px;width:22%;">출처 URL</th>',
+        '<th style="text-align:left;border:1px solid #dee2e6;padding:8px;width:36%;">검색된 근거 요약</th>',
+        "</tr></thead><tbody>",
+    ]
+    for row in rows:
+        verdict = row["verdict"]
+        row_style = "color:#c92a2a;" if verdict == "근거미발견" else ""
+        urls_html = "<br>".join(
+            f'<a href="{html_lib.escape(u, quote=True)}" target="_blank" rel="noopener">{html_lib.escape(u)}</a>'
+            for u in row["sources"]
+        ) or "<span style=\"color:#868e96;\">(없음)</span>"
+        parts.append(f'<tr style="{row_style}">')
+        parts.append(f'<td style="border:1px solid #dee2e6;padding:8px;vertical-align:top;">{cell(row["claim"])}</td>')
+        parts.append(f'<td style="border:1px solid #dee2e6;padding:8px;vertical-align:top;"><strong>{cell(verdict)}</strong></td>')
+        parts.append(f'<td style="border:1px solid #dee2e6;padding:8px;vertical-align:top;word-break:break-all;">{urls_html}</td>')
+        parts.append(f'<td style="border:1px solid #dee2e6;padding:8px;vertical-align:top;">{cell(row["summary"])}</td>')
+        parts.append("</tr>")
+    parts.append("</tbody></table>")
+    st.markdown("".join(parts), unsafe_allow_html=True)
+
+
 st.set_page_config(page_title="여행 블로그 초안 생성기", layout="wide")
 st.title("여행 블로그 초안 생성기")
 
@@ -173,3 +282,27 @@ if submitted:
     st.subheader("태그 15개")
     render_copy_button("태그 복사", tags_text, None, key="tags")
     st.write(tags_text)
+
+    st.subheader("법률 정보 검증")
+    st.caption("본문은 자동으로 수정되지 않습니다. 검증 결과는 참고용으로만 표시합니다.")
+    with st.spinner("본문에서 법률 관련 주장 추출 중..."):
+        try:
+            claims = extract_legal_claims(body_html)
+        except Exception as e:
+            st.error(f"주장 추출 실패: {e}")
+            claims = []
+
+    if not claims:
+        st.info("본문에서 검증할 법률·처벌 관련 주장을 찾지 못했습니다.")
+    else:
+        rows: list[dict] = []
+        progress = st.progress(0.0, text=f"검증 중 0/{len(claims)}")
+        for i, claim in enumerate(claims):
+            try:
+                v = verify_claim(claim)
+            except Exception as e:
+                v = {"verdict": "근거미발견", "sources": [], "summary": f"(검증 오류) {e}"}
+            rows.append({"claim": claim, **v})
+            progress.progress((i + 1) / len(claims), text=f"검증 중 {i + 1}/{len(claims)}")
+        progress.empty()
+        render_verification_table(rows)
