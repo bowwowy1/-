@@ -52,49 +52,6 @@ class ResponseParseError(Exception):
         self.stop_reason = stop_reason
 
 
-GENERATE_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "titles": {
-            "type": "array",
-            "items": {"type": "string"},
-            "description": "제목 후보 10개",
-        },
-        "body_html": {
-            "type": "string",
-            "description": "HTML 태그로 작성된 본문. <p>, <h3>, <ul>, <li> 등 사용.",
-        },
-        "tags": {
-            "type": "array",
-            "items": {"type": "string"},
-            "description": "태그 15개",
-        },
-    },
-    "required": ["titles", "body_html", "tags"],
-    "additionalProperties": False,
-}
-
-CLAIMS_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "claims": {"type": "array", "items": {"type": "string"}},
-    },
-    "required": ["claims"],
-    "additionalProperties": False,
-}
-
-VERIFY_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "verdict": {"type": "string", "enum": ["근거있음", "근거미발견", "상충"]},
-        "sources": {"type": "array", "items": {"type": "string"}},
-        "summary": {"type": "string"},
-    },
-    "required": ["verdict", "sources", "summary"],
-    "additionalProperties": False,
-}
-
-
 def _js_literal(value) -> str:
     return json.dumps(value, ensure_ascii=False).replace("</", "<\\/")
 
@@ -158,66 +115,43 @@ def render_copy_button(label: str, plain_text: str, html_text: str | None, key: 
     components.html(component_html, height=44)
 
 
-def _parse_json_from_response(resp) -> dict:
+def _parse_prefilled_json(resp) -> dict:
+    """응답이 '{' 프리필로 시작한다고 가정하고 파싱한다.
+    프리필된 '{' 는 응답 텍스트에 포함되지 않으므로 앞에 붙여서 복원한다."""
     text_blocks = [b.text for b in resp.content if b.type == "text"]
-    raw_text = "\n".join(text_blocks)
+    raw_text = "".join(text_blocks)
+    candidate = "{" + raw_text
     stop_reason = getattr(resp, "stop_reason", None)
 
-    for candidate in reversed(text_blocks):
-        stripped = strip_code_fence(candidate)
-        try:
-            return json.loads(stripped)
-        except json.JSONDecodeError:
-            match = re.search(r"\{.*\}", stripped, re.DOTALL)
-            if match:
-                try:
-                    return json.loads(match.group(0))
-                except json.JSONDecodeError:
-                    continue
-
-    match = re.search(r"\{.*\}", raw_text, re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group(0))
-        except json.JSONDecodeError as e:
-            raise ResponseParseError(str(e), raw_text, stop_reason)
-    raise ResponseParseError("응답에서 JSON 객체를 찾지 못했습니다.", raw_text, stop_reason)
-
-
-def _messages_create_json(client: Anthropic, *, schema: dict, schema_name: str, **kwargs):
-    """messages.create + output_config json_schema. SDK가 output_config를
-    지원하지 않으면 자동으로 폴백."""
     try:
-        return client.messages.create(
-            output_config={
-                "format": {"type": "json_schema", "name": schema_name, "schema": schema}
-            },
-            **kwargs,
-        )
-    except TypeError:
-        return client.messages.create(**kwargs)
+        return json.loads(candidate)
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", candidate, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group(0))
+            except json.JSONDecodeError as e:
+                raise ResponseParseError(str(e), candidate, stop_reason)
+    raise ResponseParseError("응답에서 JSON 객체를 찾지 못했습니다.", candidate, stop_reason)
 
 
 def generate(country: str, trip_type: str, references: str, notes: str) -> dict:
     client = Anthropic()
-    resp = _messages_create_json(
-        client,
-        schema=GENERATE_SCHEMA,
-        schema_name="TravelDraft",
+    resp = client.messages.create(
         model=MODEL_ID,
         max_tokens=16000,
         system=load_system_prompt(),
-        messages=[{"role": "user", "content": build_user_message(country, trip_type, references, notes)}],
+        messages=[
+            {"role": "user", "content": build_user_message(country, trip_type, references, notes)},
+            {"role": "assistant", "content": "{"},
+        ],
     )
-    return _parse_json_from_response(resp)
+    return _parse_prefilled_json(resp)
 
 
 def extract_legal_claims(body_html: str) -> list[str]:
     client = Anthropic()
-    resp = _messages_create_json(
-        client,
-        schema=CLAIMS_SCHEMA,
-        schema_name="LegalClaims",
+    resp = client.messages.create(
         model=MODEL_ID,
         max_tokens=8000,
         system=(
@@ -254,9 +188,9 @@ def extract_legal_claims(body_html: str) -> list[str]:
                 '{"claims": ["문장1", "문장2", "문장3", ...]}\n\n'
                 f"본문:\n{body_html}"
             ),
-        }],
+        }, {"role": "assistant", "content": "{"}],
     )
-    data = _parse_json_from_response(resp)
+    data = _parse_prefilled_json(resp)
     return [c for c in data.get("claims", []) if isinstance(c, str) and c.strip()]
 
 
@@ -284,9 +218,9 @@ def verify_claim(claim: str) -> dict:
                 '{"verdict": "근거있음|근거미발견|상충", "sources": ["URL", ...], "summary": "요약"}\n\n'
                 f"주장: {claim}"
             ),
-        }],
+        }, {"role": "assistant", "content": "{"}],
     )
-    data = _parse_json_from_response(resp)
+    data = _parse_prefilled_json(resp)
     verdict = data.get("verdict", "근거미발견")
     if verdict not in ("근거있음", "근거미발견", "상충"):
         verdict = "근거미발견"
