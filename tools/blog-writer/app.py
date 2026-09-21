@@ -3,6 +3,7 @@ from datetime import date
 from pathlib import Path
 
 import streamlit as st
+import streamlit.components.v1 as components
 from anthropic import Anthropic
 from dotenv import load_dotenv
 
@@ -40,6 +41,56 @@ def strip_code_fence(text: str) -> str:
         if t.endswith("```"):
             t = t[: -3]
     return t.strip()
+
+
+def _js_literal(value) -> str:
+    return json.dumps(value, ensure_ascii=False).replace("</", "<\\/")
+
+
+def render_copy_button(label: str, plain_text: str, html_text: str | None, key: str) -> None:
+    plain_js = _js_literal(plain_text)
+    html_js = _js_literal(html_text) if html_text is not None else "null"
+    btn_id = f"cpbtn_{key}"
+    status_id = f"cpstatus_{key}"
+    component_html = f"""
+    <div style="display:flex;align-items:center;gap:10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+      <button id="{btn_id}" style="padding:6px 14px;border:1px solid #d0d0d0;border-radius:6px;background:#f7f7f7;cursor:pointer;font-size:13px;">
+        {label}
+      </button>
+      <span id="{status_id}" style="font-size:13px;color:#2b8a3e;"></span>
+    </div>
+    <script>
+      (function() {{
+        const btn = document.getElementById("{btn_id}");
+        const status = document.getElementById("{status_id}");
+        const plain = {plain_js};
+        const html = {html_js};
+        btn.addEventListener("click", async () => {{
+          try {{
+            if (html !== null && window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {{
+              const tmp = document.createElement("div");
+              tmp.innerHTML = html;
+              const plainFromHtml = tmp.innerText;
+              const item = new ClipboardItem({{
+                "text/html": new Blob([html], {{type: "text/html"}}),
+                "text/plain": new Blob([plainFromHtml], {{type: "text/plain"}}),
+              }});
+              await navigator.clipboard.write([item]);
+            }} else {{
+              await navigator.clipboard.writeText(plain);
+            }}
+            status.style.color = "#2b8a3e";
+            status.textContent = "복사됨";
+            setTimeout(() => {{ status.textContent = ""; }}, 2000);
+          }} catch (e) {{
+            status.style.color = "#c92a2a";
+            status.textContent = "복사 실패: " + e.message;
+          }}
+        }});
+      }})();
+    </script>
+    """
+    components.html(component_html, height=44)
 
 
 def generate(country: str, trip_type: str, references: str, notes: str) -> dict:
@@ -91,13 +142,19 @@ if submitted:
     body_html = result.get("body_html", "")
     tags = result.get("tags", [])
 
+    titles_text = "\n".join(f"{i}. {t}" for i, t in enumerate(titles, 1))
+    tags_text = " ".join(f"#{tag}" for tag in tags)
+    body_html_with_date = f'{body_html}\n<p>정보 확인일: {date.today().isoformat()}</p>'
+
     st.subheader("제목 후보 10개")
+    render_copy_button("제목 복사", titles_text, None, key="titles")
     for i, title in enumerate(titles, 1):
         st.write(f"{i}. {title}")
 
     st.subheader("본문")
-    body_html_with_date = f'{body_html}\n<p>정보 확인일: {date.today().isoformat()}</p>'
+    render_copy_button("본문 복사 (서식 유지)", body_html_with_date, body_html_with_date, key="body")
     st.markdown(body_html_with_date, unsafe_allow_html=True)
 
     st.subheader("태그 15개")
-    st.write(" ".join(f"#{tag}" for tag in tags))
+    render_copy_button("태그 복사", tags_text, None, key="tags")
+    st.write(tags_text)
