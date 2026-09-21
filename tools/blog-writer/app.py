@@ -1,4 +1,5 @@
 import json
+from datetime import date
 from pathlib import Path
 
 import streamlit as st
@@ -95,7 +96,8 @@ if submitted:
         st.write(f"{i}. {title}")
 
     st.subheader("본문")
-    st.markdown(body_html, unsafe_allow_html=True)
+    body_html_with_date = f'{body_html}\n<p>정보 확인일: {date.today().isoformat()}</p>'
+    st.markdown(body_html_with_date, unsafe_allow_html=True)
 
     st.subheader("태그 15개")
     st.write(" ".join(f"#{tag}" for tag in tags))
