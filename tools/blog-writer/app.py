@@ -45,6 +45,56 @@ def strip_code_fence(text: str) -> str:
     return t.strip()
 
 
+class ResponseParseError(Exception):
+    def __init__(self, message: str, raw_text: str, stop_reason: str | None = None):
+        super().__init__(message)
+        self.raw_text = raw_text
+        self.stop_reason = stop_reason
+
+
+GENERATE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "titles": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "제목 후보 10개",
+        },
+        "body_html": {
+            "type": "string",
+            "description": "HTML 태그로 작성된 본문. <p>, <h3>, <ul>, <li> 등 사용.",
+        },
+        "tags": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "태그 15개",
+        },
+    },
+    "required": ["titles", "body_html", "tags"],
+    "additionalProperties": False,
+}
+
+CLAIMS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "claims": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["claims"],
+    "additionalProperties": False,
+}
+
+VERIFY_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "verdict": {"type": "string", "enum": ["근거있음", "근거미발견", "상충"]},
+        "sources": {"type": "array", "items": {"type": "string"}},
+        "summary": {"type": "string"},
+    },
+    "required": ["verdict", "sources", "summary"],
+    "additionalProperties": False,
+}
+
+
 def _js_literal(value) -> str:
     return json.dumps(value, ensure_ascii=False).replace("</", "<\\/")
 
@@ -108,20 +158,11 @@ def render_copy_button(label: str, plain_text: str, html_text: str | None, key: 
     components.html(component_html, height=44)
 
 
-def generate(country: str, trip_type: str, references: str, notes: str) -> dict:
-    client = Anthropic()
-    resp = client.messages.create(
-        model=MODEL_ID,
-        max_tokens=16000,
-        system=load_system_prompt(),
-        messages=[{"role": "user", "content": build_user_message(country, trip_type, references, notes)}],
-    )
-    text = "".join(block.text for block in resp.content if block.type == "text")
-    return json.loads(strip_code_fence(text))
-
-
 def _parse_json_from_response(resp) -> dict:
     text_blocks = [b.text for b in resp.content if b.type == "text"]
+    raw_text = "\n".join(text_blocks)
+    stop_reason = getattr(resp, "stop_reason", None)
+
     for candidate in reversed(text_blocks):
         stripped = strip_code_fence(candidate)
         try:
@@ -133,12 +174,50 @@ def _parse_json_from_response(resp) -> dict:
                     return json.loads(match.group(0))
                 except json.JSONDecodeError:
                     continue
-    raise ValueError("응답에서 JSON을 찾지 못했습니다.")
+
+    match = re.search(r"\{.*\}", raw_text, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group(0))
+        except json.JSONDecodeError as e:
+            raise ResponseParseError(str(e), raw_text, stop_reason)
+    raise ResponseParseError("응답에서 JSON 객체를 찾지 못했습니다.", raw_text, stop_reason)
+
+
+def _messages_create_json(client: Anthropic, *, schema: dict, schema_name: str, **kwargs):
+    """messages.create + output_config json_schema. SDK가 output_config를
+    지원하지 않으면 자동으로 폴백."""
+    try:
+        return client.messages.create(
+            output_config={
+                "format": {"type": "json_schema", "name": schema_name, "schema": schema}
+            },
+            **kwargs,
+        )
+    except TypeError:
+        return client.messages.create(**kwargs)
+
+
+def generate(country: str, trip_type: str, references: str, notes: str) -> dict:
+    client = Anthropic()
+    resp = _messages_create_json(
+        client,
+        schema=GENERATE_SCHEMA,
+        schema_name="TravelDraft",
+        model=MODEL_ID,
+        max_tokens=16000,
+        system=load_system_prompt(),
+        messages=[{"role": "user", "content": build_user_message(country, trip_type, references, notes)}],
+    )
+    return _parse_json_from_response(resp)
 
 
 def extract_legal_claims(body_html: str) -> list[str]:
     client = Anthropic()
-    resp = client.messages.create(
+    resp = _messages_create_json(
+        client,
+        schema=CLAIMS_SCHEMA,
+        schema_name="LegalClaims",
         model=MODEL_ID,
         max_tokens=8000,
         system=(
@@ -185,7 +264,7 @@ def verify_claim(claim: str) -> dict:
     client = Anthropic()
     resp = client.messages.create(
         model=MODEL_ID,
-        max_tokens=4000,
+        max_tokens=8000,
         tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 3}],
         system=(
             "너는 여행자가 알아야 할 법률·처벌 주장을 정부·대사관·공신력 있는 "
@@ -274,8 +353,15 @@ if submitted:
     with st.spinner("생성 중..."):
         try:
             result = generate(country, trip_type, references, notes)
-        except json.JSONDecodeError as e:
+        except ResponseParseError as e:
             st.error(f"응답을 JSON으로 파싱하지 못했습니다: {e}")
+            if e.stop_reason == "max_tokens":
+                st.warning(
+                    "응답이 잘렸습니다 (stop_reason=max_tokens). "
+                    "max_tokens 값을 더 크게 늘려주세요."
+                )
+            with st.expander("응답 원문 (원인 확인용)", expanded=True):
+                st.code(e.raw_text or "(빈 응답)", language="json")
             st.stop()
         except Exception as e:
             st.error(f"생성 실패: {e}")
@@ -309,6 +395,13 @@ if submitted:
     with st.spinner("본문에서 법률 관련 주장 추출 중..."):
         try:
             claims = extract_legal_claims(body_html)
+        except ResponseParseError as e:
+            st.error(f"주장 추출 응답을 JSON으로 파싱하지 못했습니다: {e}")
+            if e.stop_reason == "max_tokens":
+                st.warning("응답이 잘렸습니다 (stop_reason=max_tokens).")
+            with st.expander("응답 원문 (원인 확인용)", expanded=True):
+                st.code(e.raw_text or "(빈 응답)", language="json")
+            claims = []
         except Exception as e:
             st.error(f"주장 추출 실패: {e}")
             claims = []
