@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import date
 from pathlib import Path
 
@@ -45,6 +46,19 @@ def strip_code_fence(text: str) -> str:
 
 def _js_literal(value) -> str:
     return json.dumps(value, ensure_ascii=False).replace("</", "<\\/")
+
+
+def html_for_clipboard(html: str) -> str:
+    def replace_heading(match: re.Match) -> str:
+        inner = match.group(2)
+        return f'<p><strong><span style="font-size:19px">{inner}</span></strong></p>'
+
+    return re.sub(
+        r"<(h[23])(?:\s[^>]*)?>(.*?)</\1>",
+        replace_heading,
+        html,
+        flags=re.DOTALL | re.IGNORECASE,
+    )
 
 
 def render_copy_button(label: str, plain_text: str, html_text: str | None, key: str) -> None:
@@ -152,7 +166,8 @@ if submitted:
         st.write(f"{i}. {title}")
 
     st.subheader("본문")
-    render_copy_button("본문 복사 (서식 유지)", body_html_with_date, body_html_with_date, key="body")
+    body_html_for_clipboard = html_for_clipboard(body_html_with_date)
+    render_copy_button("본문 복사 (서식 유지)", body_html_for_clipboard, body_html_for_clipboard, key="body")
     st.markdown(body_html_with_date, unsafe_allow_html=True)
 
     st.subheader("태그 15개")
