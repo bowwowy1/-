@@ -1,7 +1,7 @@
 import html as html_lib
 import json
 import re
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 import streamlit as st
@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 PROMPT_PATH = Path(__file__).parent / "prompts" / "travel.txt"
+OUTPUTS_DIR = Path(__file__).parent / "outputs"
 MODEL_ID = "claude-sonnet-5"
 
 
@@ -434,7 +435,151 @@ def render_verification_table(rows: list[dict]) -> None:
     st.markdown("".join(parts), unsafe_allow_html=True)
 
 
+def _safe_country_for_filename(country: str) -> str:
+    cleaned = re.sub(r'[<>:"/\\|?*\s]+', "_", country).strip("_")
+    return cleaned or "unknown"
+
+
+def save_output(payload: dict) -> Path:
+    OUTPUTS_DIR.mkdir(exist_ok=True)
+    ts = datetime.now().strftime("%Y%m%d_%H%M")
+    fname = f"{_safe_country_for_filename(payload.get('country', ''))}_{ts}.json"
+    path = OUTPUTS_DIR / fname
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    return path
+
+
+def list_outputs() -> list[Path]:
+    if not OUTPUTS_DIR.exists():
+        return []
+    return sorted(OUTPUTS_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+
+
+def display_label(path: Path) -> str:
+    match = re.match(r"(.+)_(\d{8})_(\d{4})$", path.stem)
+    if not match:
+        return path.stem
+    country, ds, ts = match.groups()
+    return f"{country} · {ds[:4]}-{ds[4:6]}-{ds[6:]} {ts[:2]}:{ts[2:]}"
+
+
+def run_verification(body_html: str) -> list[dict]:
+    """법률 주장 추출 + 상위 6건 웹 검색 검증. 진행 상황을 화면에 표시."""
+    with st.spinner("본문에서 법률 관련 주장 추출 중..."):
+        try:
+            claims = extract_legal_claims(body_html)
+        except ResponseParseError as e:
+            st.error(f"주장 추출 응답을 JSON으로 파싱하지 못했습니다: {e}")
+            if e.stop_reason == "max_tokens":
+                st.warning("응답이 잘렸습니다 (stop_reason=max_tokens).")
+            with st.expander("응답 원문 (원인 확인용)", expanded=True):
+                st.code(e.raw_text or "(빈 응답)", language="json")
+            return []
+        except Exception as e:
+            st.error(f"주장 추출 실패: {e}")
+            return []
+
+    if not claims:
+        return []
+
+    VERIFY_LIMIT = 6
+    priority_claims = [c for c in claims if "확인 필요" in c]
+    other_claims = [c for c in claims if "확인 필요" not in c]
+    ordered = priority_claims + other_claims
+    to_verify = ordered[:VERIFY_LIMIT]
+    skipped = ordered[VERIFY_LIMIT:]
+
+    if skipped:
+        st.caption(
+            f"비용 절감을 위해 상위 {VERIFY_LIMIT}건만 웹 검색으로 검증합니다. "
+            f"나머지 {len(skipped)}건은 '미검증' 으로 표시됩니다."
+        )
+
+    rows: list[dict] = []
+    progress = st.progress(0.0, text=f"검증 중 0/{len(to_verify)}")
+    for i, claim in enumerate(to_verify):
+        try:
+            v = verify_claim(claim)
+        except Exception as e:
+            v = {"verdict": "근거미발견", "sources": [], "summary": f"(검증 오류) {e}"}
+        rows.append({"claim": claim, **v})
+        progress.progress((i + 1) / len(to_verify), text=f"검증 중 {i + 1}/{len(to_verify)}")
+    progress.empty()
+
+    for claim in skipped:
+        rows.append({
+            "claim": claim,
+            "verdict": "미검증",
+            "sources": [],
+            "summary": "비용 절감으로 검증 생략",
+        })
+
+    return rows
+
+
+def render_result(result: dict) -> None:
+    country = result.get("country", "")
+    trip_type = result.get("trip_type", "")
+    generated_at = result.get("generated_at", "")
+    titles = result.get("titles", [])
+    body_html = result.get("body_html", "")
+    tags = result.get("tags", [])
+    verification_rows = result.get("verification_rows", [])
+
+    if country or trip_type or generated_at:
+        parts = [p for p in (country, trip_type, generated_at) if p]
+        st.caption(" · ".join(parts))
+
+    titles_text = "\n".join(f"{i}. {t}" for i, t in enumerate(titles, 1))
+    tags_text = " ".join(f"#{tag}" for tag in tags)
+
+    st.subheader("제목 후보 10개")
+    render_copy_button("제목 복사", titles_text, None, key="titles")
+    for i, title in enumerate(titles, 1):
+        st.write(f"{i}. {title}")
+
+    st.subheader("본문")
+    body_html_for_clipboard = html_for_clipboard(body_html)
+    render_copy_button("본문 복사 (서식 유지)", body_html_for_clipboard, body_html_for_clipboard, key="body")
+    st.markdown(body_html, unsafe_allow_html=True)
+
+    st.subheader("태그 15개")
+    render_copy_button("태그 복사", tags_text, None, key="tags")
+    st.write(tags_text)
+
+    st.subheader(f"법률 정보 검증 ({len(verification_rows)}건)")
+    st.caption("본문은 자동으로 수정되지 않습니다. 검증 결과는 참고용으로만 표시합니다.")
+    if not verification_rows:
+        st.info("검증할 법률·처벌 관련 주장이 없거나 검증 결과가 비어 있습니다.")
+    else:
+        render_verification_table(verification_rows)
+
+
 st.set_page_config(page_title="여행 블로그 초안 생성기", layout="wide")
+
+# 사이드바: 저장된 초안 목록
+with st.sidebar:
+    st.header("저장된 초안")
+    outputs = list_outputs()
+    if not outputs:
+        st.caption("저장된 초안 없음")
+    for path in outputs:
+        if st.button(display_label(path), key=f"load_{path.stem}", use_container_width=True):
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+            except Exception as e:
+                st.error(f"불러오기 실패: {e}")
+            else:
+                st.session_state["result"] = data
+                st.session_state["loaded_from"] = path.name
+                st.rerun()
+    if st.session_state.get("result"):
+        st.divider()
+        if st.button("새 초안 작성", use_container_width=True):
+            st.session_state.pop("result", None)
+            st.session_state.pop("loaded_from", None)
+            st.rerun()
+
 st.title("여행 블로그 초안 생성기")
 
 with st.form("input_form"):
@@ -459,7 +604,7 @@ if submitted:
 
     with st.spinner("생성 중..."):
         try:
-            result = generate(country, trip_type, references, notes)
+            gen = generate(country, trip_type, references, notes)
         except ResponseParseError as e:
             st.error(f"응답을 JSON으로 파싱하지 못했습니다: {e}")
             if e.stop_reason == "max_tokens":
@@ -474,81 +619,35 @@ if submitted:
             st.error(f"생성 실패: {e}")
             st.stop()
 
-    titles = result.get("titles", [])
-    body_html = result.get("body_html", "")
-    tags = result.get("tags", [])
+    body_html_with_date = (
+        f'{gen.get("body_html", "")}\n'
+        f'<p>정보 확인일: {date.today().isoformat()}</p>'
+    )
+    verification_rows = run_verification(body_html_with_date)
 
-    titles_text = "\n".join(f"{i}. {t}" for i, t in enumerate(titles, 1))
-    tags_text = " ".join(f"#{tag}" for tag in tags)
-    body_html_with_date = f'{body_html}\n<p>정보 확인일: {date.today().isoformat()}</p>'
+    payload = {
+        "country": country,
+        "trip_type": trip_type,
+        "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "titles": gen.get("titles", []),
+        "body_html": body_html_with_date,
+        "tags": gen.get("tags", []),
+        "verification_rows": verification_rows,
+    }
 
-    st.subheader("제목 후보 10개")
-    render_copy_button("제목 복사", titles_text, None, key="titles")
-    for i, title in enumerate(titles, 1):
-        st.write(f"{i}. {title}")
+    try:
+        saved_path = save_output(payload)
+        st.success(f"저장됨: outputs/{saved_path.name}")
+    except Exception as e:
+        st.warning(f"저장 실패: {e}")
 
-    st.subheader("본문")
-    body_html_for_clipboard = html_for_clipboard(body_html_with_date)
-    render_copy_button("본문 복사 (서식 유지)", body_html_for_clipboard, body_html_for_clipboard, key="body")
-    st.markdown(body_html_with_date, unsafe_allow_html=True)
+    st.session_state["result"] = payload
+    st.session_state.pop("loaded_from", None)
 
-    st.subheader("태그 15개")
-    render_copy_button("태그 복사", tags_text, None, key="tags")
-    st.write(tags_text)
-
-    verification_header = st.empty()
-    verification_header.subheader("법률 정보 검증")
-    st.caption("본문은 자동으로 수정되지 않습니다. 검증 결과는 참고용으로만 표시합니다.")
-    with st.spinner("본문에서 법률 관련 주장 추출 중..."):
-        try:
-            claims = extract_legal_claims(body_html)
-        except ResponseParseError as e:
-            st.error(f"주장 추출 응답을 JSON으로 파싱하지 못했습니다: {e}")
-            if e.stop_reason == "max_tokens":
-                st.warning("응답이 잘렸습니다 (stop_reason=max_tokens).")
-            with st.expander("응답 원문 (원인 확인용)", expanded=True):
-                st.code(e.raw_text or "(빈 응답)", language="json")
-            claims = []
-        except Exception as e:
-            st.error(f"주장 추출 실패: {e}")
-            claims = []
-
-    verification_header.subheader(f"법률 정보 검증 ({len(claims)}건)")
-
-    if not claims:
-        st.info("본문에서 검증할 법률·처벌 관련 주장을 찾지 못했습니다.")
-    else:
-        VERIFY_LIMIT = 6
-        # "※ 확인 필요" 가 붙은 주장을 우선. 원래 순서 유지 (안정 정렬).
-        priority_claims = [c for c in claims if "확인 필요" in c]
-        other_claims = [c for c in claims if "확인 필요" not in c]
-        ordered = priority_claims + other_claims
-        to_verify = ordered[:VERIFY_LIMIT]
-        skipped = ordered[VERIFY_LIMIT:]
-
-        if skipped:
-            st.caption(
-                f"비용 절감을 위해 상위 {VERIFY_LIMIT}건만 웹 검색으로 검증합니다. "
-                f"나머지 {len(skipped)}건은 '미검증' 으로 표시됩니다."
-            )
-
-        rows: list[dict] = []
-        progress = st.progress(0.0, text=f"검증 중 0/{len(to_verify)}")
-        for i, claim in enumerate(to_verify):
-            try:
-                v = verify_claim(claim)
-            except Exception as e:
-                v = {"verdict": "근거미발견", "sources": [], "summary": f"(검증 오류) {e}"}
-            rows.append({"claim": claim, **v})
-            progress.progress((i + 1) / len(to_verify), text=f"검증 중 {i + 1}/{len(to_verify)}")
-        progress.empty()
-
-        for claim in skipped:
-            rows.append({
-                "claim": claim,
-                "verdict": "미검증",
-                "sources": [],
-                "summary": "비용 절감으로 검증 생략",
-            })
-
-        render_verification_table(rows)
+# 결과 렌더 (submit 직후이든, 사이드바에서 불러왔든 동일한 경로)
+result = st.session_state.get("result")
+if result:
+    loaded_from = st.session_state.get("loaded_from")
+    if loaded_from:
+        st.info(f"저장된 초안 불러옴: outputs/{loaded_from}")
+    render_result(result)
