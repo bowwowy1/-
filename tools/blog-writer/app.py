@@ -115,24 +115,104 @@ def render_copy_button(label: str, plain_text: str, html_text: str | None, key: 
     components.html(component_html, height=44)
 
 
-def _parse_prefilled_json(resp) -> dict:
-    """응답이 '{' 프리필로 시작한다고 가정하고 파싱한다.
-    프리필된 '{' 는 응답 텍스트에 포함되지 않으므로 앞에 붙여서 복원한다."""
-    text_blocks = [b.text for b in resp.content if b.type == "text"]
-    raw_text = "".join(text_blocks)
-    candidate = "{" + raw_text
-    stop_reason = getattr(resp, "stop_reason", None)
+GENERATE_TOOL = {
+    "name": "submit_travel_draft",
+    "description": "생성한 여행 블로그 초안 (제목 후보 10개, HTML 본문, 태그 15개)을 제출한다.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "titles": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "제목 후보 문자열 10개",
+                "minItems": 10,
+                "maxItems": 10,
+            },
+            "body_html": {
+                "type": "string",
+                "description": "HTML 태그(<p>, <h3>, <ul>, <li> 등)로 작성된 본문. 마크다운 금지.",
+            },
+            "tags": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "태그 문자열 15개 (# 없이 단어만).",
+                "minItems": 15,
+                "maxItems": 15,
+            },
+        },
+        "required": ["titles", "body_html", "tags"],
+    },
+}
 
-    try:
-        return json.loads(candidate)
-    except json.JSONDecodeError:
-        match = re.search(r"\{.*\}", candidate, re.DOTALL)
-        if match:
-            try:
-                return json.loads(match.group(0))
-            except json.JSONDecodeError as e:
-                raise ResponseParseError(str(e), candidate, stop_reason)
-    raise ResponseParseError("응답에서 JSON 객체를 찾지 못했습니다.", candidate, stop_reason)
+CLAIMS_TOOL = {
+    "name": "submit_legal_claims",
+    "description": "본문에서 추출한 법률·처벌 관련 사실 주장 문장 배열을 제출한다.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "claims": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "검증 대상 주장 문장 (HTML 태그 제거, 한 문장씩)",
+            },
+        },
+        "required": ["claims"],
+    },
+}
+
+VERIFY_TOOL = {
+    "name": "submit_verdict",
+    "description": "web_search 로 확인한 결과를 바탕으로 주장에 대한 최종 판정을 제출한다.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "verdict": {
+                "type": "string",
+                "enum": ["근거있음", "근거미발견", "상충"],
+                "description": "정부·대사관·공신력 있는 기관 문서 확인 결과",
+            },
+            "sources": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "실제로 확인한 출처 URL 배열. 없으면 빈 배열.",
+            },
+            "summary": {
+                "type": "string",
+                "description": "1~2문장 근거 요약. 확인 실패 시 그 사유.",
+            },
+        },
+        "required": ["verdict", "sources", "summary"],
+    },
+}
+
+
+def _extract_tool_input(resp, *, tool_name: str) -> dict:
+    """응답에서 특정 이름의 client-side tool_use 블록을 찾아 input(dict)을 돌려준다.
+    실패 시 ResponseParseError 에 원문 전체를 실어 던진다."""
+    for block in resp.content:
+        if getattr(block, "type", None) == "tool_use" and getattr(block, "name", None) == tool_name:
+            return dict(block.input)
+
+    lines: list[str] = []
+    for block in resp.content:
+        btype = getattr(block, "type", "unknown")
+        if btype == "text":
+            lines.append(f"[text] {block.text}")
+        elif btype == "tool_use":
+            lines.append(f"[tool_use name={getattr(block, 'name', '?')}] {json.dumps(getattr(block, 'input', {}), ensure_ascii=False)}")
+        elif btype == "server_tool_use":
+            lines.append(f"[server_tool_use name={getattr(block, 'name', '?')}] {json.dumps(getattr(block, 'input', {}), ensure_ascii=False)}")
+        elif btype == "web_search_tool_result":
+            lines.append(f"[web_search_tool_result] {getattr(block, 'content', '')}")
+        else:
+            lines.append(f"[{btype}] {block!r}")
+    raw_text = "\n".join(lines) or "(빈 응답)"
+    stop_reason = getattr(resp, "stop_reason", None)
+    raise ResponseParseError(
+        f"tool_use 블록({tool_name})을 찾지 못했습니다.",
+        raw_text,
+        stop_reason,
+    )
 
 
 def generate(country: str, trip_type: str, references: str, notes: str) -> dict:
@@ -141,12 +221,11 @@ def generate(country: str, trip_type: str, references: str, notes: str) -> dict:
         model=MODEL_ID,
         max_tokens=16000,
         system=load_system_prompt(),
-        messages=[
-            {"role": "user", "content": build_user_message(country, trip_type, references, notes)},
-            {"role": "assistant", "content": "{"},
-        ],
+        messages=[{"role": "user", "content": build_user_message(country, trip_type, references, notes)}],
+        tools=[GENERATE_TOOL],
+        tool_choice={"type": "tool", "name": GENERATE_TOOL["name"]},
     )
-    return _parse_prefilled_json(resp)
+    return _extract_tool_input(resp, tool_name=GENERATE_TOOL["name"])
 
 
 def extract_legal_claims(body_html: str) -> list[str]:
@@ -157,7 +236,8 @@ def extract_legal_claims(body_html: str) -> list[str]:
         system=(
             "너는 여행 블로그 본문에서 법률·처벌·규제와 관련된 사실 주장을 "
             "빠짐없이 모두 추출하는 도구다. 검증 대상이 될 수 있는 문장은 "
-            "하나도 빠뜨리지 마라."
+            "하나도 빠뜨리지 마라. 반드시 submit_legal_claims 도구를 호출해 "
+            "결과를 제출하라."
         ),
         messages=[{
             "role": "user",
@@ -182,15 +262,14 @@ def extract_legal_claims(body_html: str) -> list[str]:
                 "- 한 문단에 여러 주장이 있으면 각각 별도 항목으로 쪼갠다.\n"
                 "- 문장 그 자체로 검증 가능해야 한다 (지시어 대체).\n"
                 "- 요약하거나 다시 쓰지 말고, 원문의 사실 진술을 최대한 그대로 보존한다.\n"
-                "- 개수 상한 없음. 해당하는 것은 모두 넣어라.\n"
-                "\n"
-                "JSON 하나만 응답. 다른 설명 금지.\n"
-                '{"claims": ["문장1", "문장2", "문장3", ...]}\n\n'
+                "- 개수 상한 없음. 해당하는 것은 모두 넣어라.\n\n"
                 f"본문:\n{body_html}"
             ),
-        }, {"role": "assistant", "content": "{"}],
+        }],
+        tools=[CLAIMS_TOOL],
+        tool_choice={"type": "tool", "name": CLAIMS_TOOL["name"]},
     )
-    data = _parse_prefilled_json(resp)
+    data = _extract_tool_input(resp, tool_name=CLAIMS_TOOL["name"])
     return [c for c in data.get("claims", []) if isinstance(c, str) and c.strip()]
 
 
@@ -199,28 +278,31 @@ def verify_claim(claim: str) -> dict:
     resp = client.messages.create(
         model=MODEL_ID,
         max_tokens=8000,
-        tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 3}],
+        tools=[
+            {"type": "web_search_20250305", "name": "web_search", "max_uses": 3},
+            VERIFY_TOOL,
+        ],
+        tool_choice={"type": "tool", "name": VERIFY_TOOL["name"]},
         system=(
             "너는 여행자가 알아야 할 법률·처벌 주장을 정부·대사관·공신력 있는 "
             "기관(외교부, 현지 정부기관, 대사관 공지, 국제기구 등) 문서로 검증하는 "
-            "도구다. 반드시 web_search 도구를 사용해 실제 출처를 찾아 판정하라."
+            "도구다. 가능하면 web_search 로 실제 출처를 먼저 확인한 뒤, "
+            "반드시 submit_verdict 도구를 호출해서 최종 판정을 넘겨라."
         ),
         messages=[{
             "role": "user",
             "content": (
                 "아래 주장을 검증하라.\n"
-                '- 정부·대사관·공신력 있는 기관 문서에서 확인되면 verdict: "근거있음"\n'
-                '- 신뢰할 만한 출처를 찾지 못하거나 확인이 안 되면 verdict: "근거미발견"\n'
-                '- 신뢰할 만한 출처가 주장과 반대되면 verdict: "상충"\n'
+                "- 정부·대사관·공신력 있는 기관 문서에서 확인되면 verdict: 근거있음\n"
+                "- 신뢰할 만한 출처를 찾지 못하거나 확인이 안 되면 verdict: 근거미발견\n"
+                "- 신뢰할 만한 출처가 주장과 반대되면 verdict: 상충\n"
                 "sources 에는 실제로 확인한 URL만 넣어라. 없으면 빈 배열.\n"
-                "summary 는 1~2문장으로 검색 근거를 요약하라. 확인이 안 되면 그 사유를.\n"
-                "JSON 하나만 응답. 다른 설명 금지.\n"
-                '{"verdict": "근거있음|근거미발견|상충", "sources": ["URL", ...], "summary": "요약"}\n\n'
+                "summary 는 1~2문장으로 근거를 요약하라. 확인이 안 되면 그 사유를 적어라.\n\n"
                 f"주장: {claim}"
             ),
-        }, {"role": "assistant", "content": "{"}],
+        }],
     )
-    data = _parse_prefilled_json(resp)
+    data = _extract_tool_input(resp, tool_name=VERIFY_TOOL["name"])
     verdict = data.get("verdict", "근거미발견")
     if verdict not in ("근거있음", "근거미발견", "상충"):
         verdict = "근거미발견"
