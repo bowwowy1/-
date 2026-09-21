@@ -335,7 +335,7 @@ def verify_claim(claim: str) -> dict:
         ),
     }]
     tools = [
-        {"type": "web_search_20250305", "name": "web_search", "max_uses": 3},
+        {"type": "web_search_20250305", "name": "web_search", "max_uses": 1},
         VERIFY_TOOL,
     ]
 
@@ -343,7 +343,7 @@ def verify_claim(claim: str) -> dict:
     verdict_data: dict | None = None
     last_resp = None
 
-    for _ in range(3):
+    for _ in range(2):
         resp = client.messages.create(
             model=MODEL_ID,
             max_tokens=8000,
@@ -372,13 +372,13 @@ def verify_claim(claim: str) -> dict:
         })
 
     if verdict_data is None:
-        # 3회 안에 submit_verdict 를 못 받았다. raw 를 실어 에러로 던진다.
+        # 2회 안에 submit_verdict 를 못 받았다. raw 를 실어 에러로 던진다.
         try:
             _extract_tool_input(last_resp, tool_name=VERIFY_TOOL["name"])
         except ResponseParseError:
             raise
         raise ResponseParseError(
-            "3회 반복 후에도 submit_verdict 호출이 없었습니다.",
+            "2회 반복 후에도 submit_verdict 호출이 없었습니다.",
             f"수집된 web_search URL: {all_search_urls}",
             getattr(last_resp, "stop_reason", None),
         )
@@ -414,7 +414,12 @@ def render_verification_table(rows: list[dict]) -> None:
     ]
     for row in rows:
         verdict = row["verdict"]
-        row_style = "color:#c92a2a;" if verdict == "근거미발견" else ""
+        if verdict == "근거미발견":
+            row_style = "color:#c92a2a;"
+        elif verdict == "미검증":
+            row_style = "color:#868e96;"
+        else:
+            row_style = ""
         urls_html = "<br>".join(
             f'<a href="{html_lib.escape(u, quote=True)}" target="_blank" rel="noopener">{html_lib.escape(u)}</a>'
             for u in row["sources"]
@@ -513,14 +518,37 @@ if submitted:
     if not claims:
         st.info("본문에서 검증할 법률·처벌 관련 주장을 찾지 못했습니다.")
     else:
+        VERIFY_LIMIT = 6
+        # "※ 확인 필요" 가 붙은 주장을 우선. 원래 순서 유지 (안정 정렬).
+        priority_claims = [c for c in claims if "확인 필요" in c]
+        other_claims = [c for c in claims if "확인 필요" not in c]
+        ordered = priority_claims + other_claims
+        to_verify = ordered[:VERIFY_LIMIT]
+        skipped = ordered[VERIFY_LIMIT:]
+
+        if skipped:
+            st.caption(
+                f"비용 절감을 위해 상위 {VERIFY_LIMIT}건만 웹 검색으로 검증합니다. "
+                f"나머지 {len(skipped)}건은 '미검증' 으로 표시됩니다."
+            )
+
         rows: list[dict] = []
-        progress = st.progress(0.0, text=f"검증 중 0/{len(claims)}")
-        for i, claim in enumerate(claims):
+        progress = st.progress(0.0, text=f"검증 중 0/{len(to_verify)}")
+        for i, claim in enumerate(to_verify):
             try:
                 v = verify_claim(claim)
             except Exception as e:
                 v = {"verdict": "근거미발견", "sources": [], "summary": f"(검증 오류) {e}"}
             rows.append({"claim": claim, **v})
-            progress.progress((i + 1) / len(claims), text=f"검증 중 {i + 1}/{len(claims)}")
+            progress.progress((i + 1) / len(to_verify), text=f"검증 중 {i + 1}/{len(to_verify)}")
         progress.empty()
+
+        for claim in skipped:
+            rows.append({
+                "claim": claim,
+                "verdict": "미검증",
+                "sources": [],
+                "summary": "비용 절감으로 검증 생략",
+            })
+
         render_verification_table(rows)
