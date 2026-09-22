@@ -568,6 +568,12 @@ st.set_page_config(page_title="여행 블로그 초안 생성기", layout="wide"
 # 사이드바: 저장된 초안 목록
 with st.sidebar:
     st.header("저장된 초안")
+    test_mode = st.checkbox(
+        "테스트 모드",
+        value=False,
+        key="test_mode",
+        help="API 호출 없이 outputs/ 최근 파일을 그대로 불러와 UI 확인용.",
+    )
     outputs = list_outputs()
     if not outputs:
         st.caption("저장된 초안 없음")
@@ -653,6 +659,22 @@ if not references.strip():
     st.warning("참고자료 없이 생성하면 법률 서술이 제외됩니다.")
 
 submitted = st.button("초안 생성", type="primary")
+
+if submitted and st.session_state.get("test_mode"):
+    outs = list_outputs()
+    if not outs:
+        st.error("테스트 모드: outputs/ 에 저장된 파일이 없습니다.")
+        st.stop()
+    latest = outs[0]
+    try:
+        data = json.loads(latest.read_text(encoding="utf-8"))
+    except Exception as e:
+        st.error(f"테스트 모드 로드 실패: {e}")
+        st.stop()
+    st.info(f"테스트 모드: API 호출 없이 outputs/{latest.name} 를 불러왔습니다.")
+    st.session_state["result"] = data
+    st.session_state["loaded_from"] = latest.name
+    submitted = False  # 아래 실제 생성 분기 스킵
 
 if submitted:
     if not country.strip():
