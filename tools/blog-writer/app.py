@@ -20,10 +20,28 @@ def load_system_prompt() -> str:
     return PROMPT_PATH.read_text(encoding="utf-8")
 
 
-def build_user_message(country: str, trip_type: str, references: str, notes: str) -> str:
+def build_user_message(
+    country: str,
+    trip_type: str,
+    references: str,
+    notes: str,
+    focus_angle: str = "",
+) -> str:
+    focus = focus_angle.strip() if focus_angle else ""
+    if focus:
+        focus_line = (
+            f"이번 편 집중 각도: {focus}\n"
+            "→ 5개 섹션 구조는 유지하되 이 각도 하나만 깊게 다뤄라. "
+            "다른 주제는 한 문장 이상 언급하지 마라. 역사적 배경과 현재 "
+            "규정을 구체적으로 써라. 제목 후보에도 이 각도 키워드를 넣어라.\n"
+        )
+    else:
+        focus_line = "이번 편 집중 각도: (없음. 종합편으로 쓰기)\n"
+
     return (
         f"나라: {country}\n"
-        f"여행 유형: {trip_type}\n\n"
+        f"여행 유형: {trip_type}\n"
+        f"{focus_line}\n"
         f"[참고자료 — 외교부 해외안전여행·대사관 공지 원문]\n{references or '(없음)'}\n\n"
         f"[내가 아는 사실/관점 메모]\n{notes or '(없음)'}\n\n"
         "아래 JSON 형식으로만 응답하라. 코드펜스나 다른 설명 없이 JSON 하나만 출력한다.\n"
@@ -245,13 +263,22 @@ def _extract_tool_input(resp, *, tool_name: str) -> dict:
     )
 
 
-def generate(country: str, trip_type: str, references: str, notes: str) -> dict:
+def generate(
+    country: str,
+    trip_type: str,
+    references: str,
+    notes: str,
+    focus_angle: str = "",
+) -> dict:
     client = Anthropic()
     resp = client.messages.create(
         model=MODEL_ID,
         max_tokens=16000,
         system=load_system_prompt(),
-        messages=[{"role": "user", "content": build_user_message(country, trip_type, references, notes)}],
+        messages=[{
+            "role": "user",
+            "content": build_user_message(country, trip_type, references, notes, focus_angle),
+        }],
         tools=[GENERATE_TOOL],
         tool_choice={"type": "tool", "name": GENERATE_TOOL["name"]},
     )
@@ -762,6 +789,10 @@ st.title("여행 블로그 초안 생성기")
 # st.form 을 쓰면 위젯 변경이 실시간 rerun 을 트리거하지 않아 조건부
 # 경고를 낼 수 없다. 그래서 form 없이 평범한 위젯 + st.button 으로 구성.
 country = st.text_input("나라 이름", placeholder="예: 튀르키예")
+focus_angle = st.text_input(
+    "이번 편 집중 각도 (비워두면 종합편)",
+    placeholder="예: 왕실모독죄, 사원 예절, 툭툭 사기",
+)
 trip_type = st.selectbox("여행 유형", ["관광", "출장", "장기체류"])
 
 collect_disabled = not country.strip() or st.session_state.get("test_mode", False)
@@ -836,7 +867,7 @@ if submitted:
 
     with st.spinner("생성 중..."):
         try:
-            gen = generate(country, trip_type, references, notes)
+            gen = generate(country, trip_type, references, notes, focus_angle)
         except ResponseParseError as e:
             st.error(f"응답을 JSON으로 파싱하지 못했습니다: {e}")
             if e.stop_reason == "max_tokens":
@@ -860,6 +891,7 @@ if submitted:
     payload = {
         "country": country,
         "trip_type": trip_type,
+        "focus_angle": focus_angle.strip(),
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "titles": gen.get("titles", []),
         "body_html": body_html_with_date,
