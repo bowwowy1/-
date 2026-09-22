@@ -186,6 +186,35 @@ VERIFY_TOOL = {
     },
 }
 
+COLLECT_REFERENCES_TOOL = {
+    "name": "submit_reference_paragraphs",
+    "description": "web_search 로 찾은 법률·처벌·반입 규제 관련 문단과 출처 URL을 제출한다.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "paragraphs": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "content": {
+                            "type": "string",
+                            "description": "법률·처벌·반입 규제 관련 문단. 원문을 최대한 그대로 보존.",
+                        },
+                        "url": {
+                            "type": "string",
+                            "description": "이 문단이 나온 실제 출처 URL",
+                        },
+                    },
+                    "required": ["content", "url"],
+                },
+                "description": "발췌한 문단 목록. 관련 자료가 없으면 빈 배열.",
+            },
+        },
+        "required": ["paragraphs"],
+    },
+}
+
 
 def _extract_tool_input(resp, *, tool_name: str) -> dict:
     """응답에서 특정 이름의 client-side tool_use 블록을 찾아 input(dict)을 돌려준다.
@@ -406,6 +435,96 @@ def verify_claim(claim: str) -> dict:
         summary = prefix + summary if summary else prefix.strip()
 
     return {"verdict": verdict, "sources": sources, "summary": summary}
+
+
+def collect_references(country: str) -> str:
+    """나라 이름으로 web_search 를 실행해 법률·처벌·반입 규제 관련 문단을
+    수집하고, 참고자료 입력란에 그대로 붙여넣을 수 있는 텍스트로 돌려준다.
+    관련 자료를 찾지 못했으면 빈 문자열."""
+    client = Anthropic()
+    system_prompt = (
+        "너는 여행자가 알아야 할 법률·처벌·반입 규제 정보를 정부·대사관·"
+        "공신력 있는 기관 문서에서 수집하는 도구다.\n"
+        "\n"
+        "필수 순서:\n"
+        "1) 반드시 web_search 도구로 실제 출처를 검색한다.\n"
+        "2) 검색 결과에서 법률·처벌·반입 규제와 관련된 문단만 추린다.\n"
+        "3) submit_reference_paragraphs 도구를 호출해 결과를 제출한다.\n"
+        "\n"
+        "규칙:\n"
+        "- 문단은 원문을 최대한 그대로 보존한다. 요약·재작성 금지.\n"
+        "- 각 문단마다 실제로 확인한 출처 URL을 함께 넣는다.\n"
+        "- 법률·처벌·반입 규제와 무관한 문단은 넣지 마라.\n"
+        "- 관련 자료를 하나도 찾지 못하면 paragraphs 를 빈 배열로 제출한다."
+    )
+    queries = [
+        f'"{country} 외교부 해외안전여행 처벌 법규"',
+        f'"{country} 주재 한국대사관 공지 벌금 처벌"',
+    ]
+    messages: list[dict] = [{
+        "role": "user",
+        "content": (
+            f"'{country}' 여행자에게 필요한 법률·처벌·반입 규제 정보를 "
+            "수집하라. 다음 두 검색어를 사용한다:\n"
+            f"1) {queries[0]}\n"
+            f"2) {queries[1]}\n\n"
+            "검색이 끝나면 submit_reference_paragraphs 를 호출하여 각 "
+            "문단과 출처 URL을 넘겨라."
+        ),
+    }]
+    tools = [
+        {"type": "web_search_20250305", "name": "web_search", "max_uses": 2},
+        COLLECT_REFERENCES_TOOL,
+    ]
+
+    paragraphs: list[dict] | None = None
+    for _ in range(2):
+        resp = client.messages.create(
+            model=MODEL_ID,
+            max_tokens=8000,
+            tools=tools,
+            tool_choice={"type": "any"},
+            system=system_prompt,
+            messages=messages,
+        )
+        submit_block = next(
+            (
+                b
+                for b in resp.content
+                if getattr(b, "type", None) == "tool_use"
+                and getattr(b, "name", None) == COLLECT_REFERENCES_TOOL["name"]
+            ),
+            None,
+        )
+        if submit_block is not None:
+            data = dict(submit_block.input)
+            raw = data.get("paragraphs", [])
+            paragraphs = [p for p in raw if isinstance(p, dict)]
+            break
+        messages.append({"role": "assistant", "content": resp.content})
+        messages.append({
+            "role": "user",
+            "content": (
+                "검색이 충분하다. 이제 submit_reference_paragraphs 도구를 "
+                "호출해 결과를 제출하라. 관련 자료가 없으면 paragraphs 를 "
+                "빈 배열로 넣어라."
+            ),
+        })
+
+    if not paragraphs:
+        return ""
+
+    blocks: list[str] = []
+    for p in paragraphs:
+        content = (p.get("content") or "").strip()
+        url = (p.get("url") or "").strip()
+        if not content:
+            continue
+        block = content
+        if url:
+            block += f"\n출처: {url}"
+        blocks.append(block)
+    return "\n\n".join(blocks)
 
 
 def render_verification_table(rows: list[dict]) -> None:
@@ -644,9 +763,43 @@ st.title("여행 블로그 초안 생성기")
 # 경고를 낼 수 없다. 그래서 form 없이 평범한 위젯 + st.button 으로 구성.
 country = st.text_input("나라 이름", placeholder="예: 튀르키예")
 trip_type = st.selectbox("여행 유형", ["관광", "출장", "장기체류"])
+
+collect_disabled = not country.strip() or st.session_state.get("test_mode", False)
+collect_help = None
+if not country.strip():
+    collect_help = "나라 이름을 먼저 입력하세요."
+elif st.session_state.get("test_mode", False):
+    collect_help = "테스트 모드에서는 자동 수집을 사용할 수 없습니다."
+
+if st.button(
+    "참고자료 자동 수집",
+    disabled=collect_disabled,
+    help=collect_help,
+):
+    with st.spinner(f"'{country.strip()}' 관련 자료 검색 중..."):
+        try:
+            collected = collect_references(country.strip())
+            err = None
+        except Exception as e:
+            collected = ""
+            err = str(e)
+    st.session_state["references_input"] = collected
+    if err:
+        st.session_state["_collect_error"] = err
+    elif not collected:
+        st.session_state["_collect_failed"] = True
+    st.rerun()
+
+collect_err = st.session_state.pop("_collect_error", None)
+if collect_err:
+    st.error(f"자동 수집 오류: {collect_err}")
+if st.session_state.pop("_collect_failed", False):
+    st.warning("자동 수집 실패, 직접 붙여넣어 주세요.")
+
 references = st.text_area(
     "참고자료 (외교부 해외안전여행·대사관 공지 원문 붙여넣기)",
     height=220,
+    key="references_input",
     placeholder="원문을 그대로 붙여넣으세요. 법률·처벌 서술은 이 자료에 근거가 있을 때만 쓰입니다.",
 )
 notes = st.text_area(
