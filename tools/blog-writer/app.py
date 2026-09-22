@@ -590,20 +590,25 @@ with st.sidebar:
 
 st.title("여행 블로그 초안 생성기")
 
-with st.form("input_form"):
-    country = st.text_input("나라 이름", placeholder="예: 튀르키예")
-    trip_type = st.selectbox("여행 유형", ["관광", "출장", "장기체류"])
-    references = st.text_area(
-        "참고자료 (외교부 해외안전여행·대사관 공지 원문 붙여넣기)",
-        height=220,
-        placeholder="원문을 그대로 붙여넣으세요. 법률·처벌 서술은 이 자료에 근거가 있을 때만 쓰입니다.",
-    )
-    notes = st.text_area(
-        "내가 아는 사실/관점 메모",
-        height=160,
-        placeholder="직접 겪었거나 확인한 사실, 강조하고 싶은 관점 등",
-    )
-    submitted = st.form_submit_button("초안 생성")
+# st.form 을 쓰면 위젯 변경이 실시간 rerun 을 트리거하지 않아 조건부
+# 경고를 낼 수 없다. 그래서 form 없이 평범한 위젯 + st.button 으로 구성.
+country = st.text_input("나라 이름", placeholder="예: 튀르키예")
+trip_type = st.selectbox("여행 유형", ["관광", "출장", "장기체류"])
+references = st.text_area(
+    "참고자료 (외교부 해외안전여행·대사관 공지 원문 붙여넣기)",
+    height=220,
+    placeholder="원문을 그대로 붙여넣으세요. 법률·처벌 서술은 이 자료에 근거가 있을 때만 쓰입니다.",
+)
+notes = st.text_area(
+    "내가 아는 사실/관점 메모",
+    height=160,
+    placeholder="직접 겪었거나 확인한 사실, 강조하고 싶은 관점 등",
+)
+
+if not references.strip():
+    st.warning("참고자료 없이 생성하면 법률 서술이 제외됩니다.")
+
+submitted = st.button("초안 생성", type="primary")
 
 if submitted:
     if not country.strip():
