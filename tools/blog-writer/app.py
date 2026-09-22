@@ -572,15 +572,59 @@ with st.sidebar:
     if not outputs:
         st.caption("저장된 초안 없음")
     for path in outputs:
-        if st.button(display_label(path), key=f"load_{path.stem}", use_container_width=True):
-            try:
-                data = json.loads(path.read_text(encoding="utf-8"))
-            except Exception as e:
-                st.error(f"불러오기 실패: {e}")
-            else:
-                st.session_state["result"] = data
-                st.session_state["loaded_from"] = path.name
-                st.rerun()
+        pending = st.session_state.get("confirm_delete") == path.name
+        if pending:
+            st.caption(f"'{display_label(path)}' 삭제할까요?")
+            c_yes, c_no = st.columns(2)
+            with c_yes:
+                if st.button(
+                    "정말 지우기",
+                    key=f"delyes_{path.stem}",
+                    type="primary",
+                    use_container_width=True,
+                ):
+                    was_loaded = st.session_state.get("loaded_from") == path.name
+                    try:
+                        path.unlink()
+                    except FileNotFoundError:
+                        pass
+                    except Exception as e:
+                        st.error(f"삭제 실패: {e}")
+                    st.session_state.pop("confirm_delete", None)
+                    if was_loaded:
+                        st.session_state.pop("result", None)
+                        st.session_state.pop("loaded_from", None)
+                    st.rerun()
+            with c_no:
+                if st.button("취소", key=f"delno_{path.stem}", use_container_width=True):
+                    st.session_state.pop("confirm_delete", None)
+                    st.rerun()
+        else:
+            c_load, c_del = st.columns([5, 1])
+            with c_load:
+                if st.button(
+                    display_label(path),
+                    key=f"load_{path.stem}",
+                    use_container_width=True,
+                ):
+                    try:
+                        data = json.loads(path.read_text(encoding="utf-8"))
+                    except Exception as e:
+                        st.error(f"불러오기 실패: {e}")
+                    else:
+                        st.session_state["result"] = data
+                        st.session_state["loaded_from"] = path.name
+                        st.rerun()
+            with c_del:
+                if st.button(
+                    "×",
+                    key=f"del_{path.stem}",
+                    help="삭제",
+                    use_container_width=True,
+                ):
+                    st.session_state["confirm_delete"] = path.name
+                    st.rerun()
+
     if st.session_state.get("result"):
         st.divider()
         if st.button("새 초안 작성", use_container_width=True):
