@@ -12,12 +12,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 PROMPT_PATH = Path(__file__).parent / "prompts" / "travel.txt"
+ANGLES_PROMPT_PATH = Path(__file__).parent / "prompts" / "angles.txt"
 OUTPUTS_DIR = Path(__file__).parent / "outputs"
 MODEL_ID = "claude-sonnet-5"
 
 
 def load_system_prompt() -> str:
     return PROMPT_PATH.read_text(encoding="utf-8")
+
+
+def load_angles_prompt() -> str:
+    return ANGLES_PROMPT_PATH.read_text(encoding="utf-8")
 
 
 def build_user_message(
@@ -230,6 +235,37 @@ COLLECT_REFERENCES_TOOL = {
             },
         },
         "required": ["paragraphs"],
+    },
+}
+
+ANGLES_TOOL = {
+    "name": "submit_angle_candidates",
+    "description": "여행 블로그 편별 각도 후보 8개를 제출한다.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "candidates": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "title": {
+                            "type": "string",
+                            "description": "각도 제목 (한 줄, 짧게)",
+                        },
+                        "explanation": {
+                            "type": "string",
+                            "description": "이 각도로 한 편이 되는 이유 (한 줄)",
+                        },
+                    },
+                    "required": ["title", "explanation"],
+                },
+                "minItems": 8,
+                "maxItems": 8,
+                "description": "각도 후보 8개",
+            },
+        },
+        "required": ["candidates"],
     },
 }
 
@@ -554,6 +590,39 @@ def collect_references(country: str) -> str:
     return "\n\n".join(blocks)
 
 
+def extract_angles(country: str, references: str) -> list[dict]:
+    """나라 이름과 참고자료로 편별 각도 후보 8개 뽑기. 짧은 호출."""
+    client = Anthropic()
+    resp = client.messages.create(
+        model=MODEL_ID,
+        max_tokens=2000,
+        system=load_angles_prompt(),
+        messages=[{
+            "role": "user",
+            "content": (
+                f"나라: {country}\n\n"
+                f"[참고자료 — 외교부 해외안전여행·대사관 공지 등]\n"
+                f"{references or '(없음)'}\n\n"
+                "위 정보를 바탕으로 이 나라 여행 블로그를 8편으로 나눌 각도 후보 "
+                "8개를 만들어 submit_angle_candidates 도구로 제출하라."
+            ),
+        }],
+        tools=[ANGLES_TOOL],
+        tool_choice={"type": "tool", "name": ANGLES_TOOL["name"]},
+    )
+    data = _extract_tool_input(resp, tool_name=ANGLES_TOOL["name"])
+    raw = data.get("candidates", [])
+    result: list[dict] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        title = (item.get("title") or "").strip()
+        explanation = (item.get("explanation") or "").strip()
+        if title:
+            result.append({"title": title, "explanation": explanation})
+    return result
+
+
 def render_verification_table(rows: list[dict]) -> None:
     def cell(text: str) -> str:
         return html_lib.escape(text).replace("\n", "<br>")
@@ -792,40 +861,88 @@ country = st.text_input("나라 이름", placeholder="예: 튀르키예")
 focus_angle = st.text_input(
     "이번 편 집중 각도 (비워두면 종합편)",
     placeholder="예: 왕실모독죄, 사원 예절, 툭툭 사기",
+    key="focus_angle_input",
 )
 trip_type = st.selectbox("여행 유형", ["관광", "출장", "장기체류"])
 
-collect_disabled = not country.strip() or st.session_state.get("test_mode", False)
-collect_help = None
+helper_disabled = not country.strip() or st.session_state.get("test_mode", False)
+helper_help = None
 if not country.strip():
-    collect_help = "나라 이름을 먼저 입력하세요."
+    helper_help = "나라 이름을 먼저 입력하세요."
 elif st.session_state.get("test_mode", False):
-    collect_help = "테스트 모드에서는 자동 수집을 사용할 수 없습니다."
+    helper_help = "테스트 모드에서는 사용할 수 없습니다."
 
-if st.button(
-    "참고자료 자동 수집",
-    disabled=collect_disabled,
-    help=collect_help,
-):
-    with st.spinner(f"'{country.strip()}' 관련 자료 검색 중..."):
-        try:
-            collected = collect_references(country.strip())
-            err = None
-        except Exception as e:
-            collected = ""
-            err = str(e)
-    st.session_state["references_input"] = collected
-    if err:
-        st.session_state["_collect_error"] = err
-    elif not collected:
-        st.session_state["_collect_failed"] = True
-    st.rerun()
+col_collect, col_angles = st.columns(2)
+with col_collect:
+    if st.button(
+        "참고자료 자동 수집",
+        disabled=helper_disabled,
+        help=helper_help,
+        use_container_width=True,
+    ):
+        with st.spinner(f"'{country.strip()}' 관련 자료 검색 중..."):
+            try:
+                collected = collect_references(country.strip())
+                err = None
+            except Exception as e:
+                collected = ""
+                err = str(e)
+        st.session_state["references_input"] = collected
+        if err:
+            st.session_state["_collect_error"] = err
+        elif not collected:
+            st.session_state["_collect_failed"] = True
+        st.rerun()
+with col_angles:
+    if st.button(
+        "각도 후보 뽑기",
+        disabled=helper_disabled,
+        help=helper_help,
+        use_container_width=True,
+    ):
+        with st.spinner(f"'{country.strip()}' 각도 후보 생성 중..."):
+            try:
+                cands = extract_angles(
+                    country.strip(),
+                    st.session_state.get("references_input", ""),
+                )
+                st.session_state["angle_candidates"] = cands
+                st.session_state.pop("_angle_error", None)
+            except Exception as e:
+                st.session_state["angle_candidates"] = []
+                st.session_state["_angle_error"] = str(e)
+        st.session_state.pop("angle_choice_idx", None)
+        st.rerun()
 
 collect_err = st.session_state.pop("_collect_error", None)
 if collect_err:
     st.error(f"자동 수집 오류: {collect_err}")
 if st.session_state.pop("_collect_failed", False):
     st.warning("자동 수집 실패, 직접 붙여넣어 주세요.")
+
+angle_err = st.session_state.pop("_angle_error", None)
+if angle_err:
+    st.error(f"각도 후보 뽑기 오류: {angle_err}")
+
+_angle_candidates = st.session_state.get("angle_candidates", [])
+if _angle_candidates:
+    def _pick_angle():
+        idx = st.session_state.get("angle_choice_idx")
+        if isinstance(idx, int) and idx > 0:
+            cands = st.session_state.get("angle_candidates", [])
+            if idx - 1 < len(cands):
+                st.session_state["focus_angle_input"] = cands[idx - 1]["title"]
+
+    _labels = ["(선택 없음)"] + [
+        f"{c['title']} — {c['explanation']}" for c in _angle_candidates
+    ]
+    st.radio(
+        "각도 후보 (선택하면 위 '이번 편 집중 각도' 입력칸에 채워집니다)",
+        options=list(range(len(_labels))),
+        format_func=lambda i: _labels[i],
+        key="angle_choice_idx",
+        on_change=_pick_angle,
+    )
 
 references = st.text_area(
     "참고자료 (외교부 해외안전여행·대사관 공지 원문 붙여넣기)",
