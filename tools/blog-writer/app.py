@@ -52,8 +52,9 @@ def build_user_message(
         "아래 JSON 형식으로만 응답하라. 코드펜스나 다른 설명 없이 JSON 하나만 출력한다.\n"
         "{\n"
         '  "titles": ["제목 후보 10개, 문자열 배열"],\n'
-        '  "body_html": "HTML 태그로 작성된 본문. <p>, <h3>, <ul>, <li> 등을 사용. 마크다운 금지.",\n'
-        '  "tags": ["태그 15개, 문자열 배열. # 없이 단어만"]\n'
+        '  "body_html": "HTML 태그로 작성된 본문. <p>, <h3>, <ul>, <li> 등을 사용. 마크다운 금지. 썸네일 아이디어를 여기에 쓰지 말 것.",\n'
+        '  "tags": ["태그 15개, 문자열 배열. # 없이 단어만"],\n'
+        '  "thumbnails": ["썸네일 아이디어 2개, 각각 한 문장 (구도 + 텍스트 + 색감)"]\n'
         "}"
     )
 
@@ -141,7 +142,7 @@ def render_copy_button(label: str, plain_text: str, html_text: str | None, key: 
 
 GENERATE_TOOL = {
     "name": "submit_travel_draft",
-    "description": "생성한 여행 블로그 초안 (제목 후보 10개, HTML 본문, 태그 15개)을 제출한다.",
+    "description": "생성한 여행 블로그 초안 (제목 후보 10개, HTML 본문, 태그 15개, 썸네일 아이디어 2개)을 제출한다.",
     "input_schema": {
         "type": "object",
         "properties": {
@@ -154,7 +155,7 @@ GENERATE_TOOL = {
             },
             "body_html": {
                 "type": "string",
-                "description": "HTML 태그(<p>, <h3>, <ul>, <li> 등)로 작성된 본문. 마크다운 금지.",
+                "description": "HTML 태그(<p>, <h3>, <ul>, <li> 등)로 작성된 본문. 마크다운 금지. 썸네일 아이디어는 절대 본문에 쓰지 말 것.",
             },
             "tags": {
                 "type": "array",
@@ -163,8 +164,15 @@ GENERATE_TOOL = {
                 "minItems": 15,
                 "maxItems": 15,
             },
+            "thumbnails": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "썸네일 아이디어 2개. 각각 한 문장으로 구도·텍스트·색감을 담는다. 본문과 분리.",
+                "minItems": 2,
+                "maxItems": 2,
+            },
         },
-        "required": ["titles", "body_html", "tags"],
+        "required": ["titles", "body_html", "tags", "thumbnails"],
     },
 }
 
@@ -747,6 +755,7 @@ def render_result(result: dict) -> None:
     titles = result.get("titles", [])
     body_html = result.get("body_html", "")
     tags = result.get("tags", [])
+    thumbnails = result.get("thumbnails", [])
     verification_rows = result.get("verification_rows", [])
 
     if country or trip_type or generated_at:
@@ -765,6 +774,13 @@ def render_result(result: dict) -> None:
     body_html_for_clipboard = html_for_clipboard(body_html)
     render_copy_button("본문 복사 (서식 유지)", body_html_for_clipboard, body_html_for_clipboard, key="body")
     st.markdown(body_html, unsafe_allow_html=True)
+
+    st.subheader("썸네일 아이디어")
+    if not thumbnails:
+        st.info("썸네일 아이디어가 없습니다.")
+    else:
+        for i, thumb in enumerate(thumbnails, 1):
+            st.write(f"{i}. {thumb}")
 
     st.subheader("태그 15개")
     render_copy_button("태그 복사", tags_text, None, key="tags")
@@ -1013,6 +1029,9 @@ if submitted:
         "titles": gen.get("titles", []),
         "body_html": body_html_with_date,
         "tags": gen.get("tags", []),
+        "thumbnails": [
+            t for t in gen.get("thumbnails", []) if isinstance(t, str) and t.strip()
+        ],
         "verification_rows": verification_rows,
     }
 
