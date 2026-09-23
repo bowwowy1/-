@@ -416,20 +416,29 @@ def _find_submit_verdict(resp):
     return None
 
 
-def verify_claim(claim: str) -> dict:
-    """web_search + submit_verdict 다중 tool 루프. 최대 3회 반복.
-    검색된 URL이 없으면 verdict 를 '근거미발견'으로 강제한다."""
+def verify_claim(claim: str, country: str) -> dict:
+    """web_search + submit_verdict 다중 tool 루프. 최대 2회 반복.
+    검색된 URL이 없으면 verdict 를 '근거미발견'으로 강제한다.
+    검색·판정 모두 '대상 국가(country)' 의 법률만 근거로 인정한다."""
     client = Anthropic()
+    country_name = (country or "").strip() or "(미상)"
     system_prompt = (
-        "너는 여행자가 알아야 할 법률·처벌 주장을 정부·대사관·공신력 있는 "
-        "기관(외교부, 현지 정부기관, 대사관 공지, 국제기구 등) 문서로 검증하는 "
-        "도구다.\n"
+        f"너는 '{country_name}' 여행자에게 필요한 법률·처벌 주장을 "
+        f"'{country_name}'의 정부·법원·의회·주한 대사관 공지·현지 언론 "
+        "자료로만 검증하는 도구다.\n"
         "\n"
         "필수 순서:\n"
-        "1) 먼저 web_search 도구로 실제 출처를 검색한다.\n"
+        f"1) web_search 로 반드시 '{country_name}' 이름을 포함한 쿼리로 검색한다.\n"
+        f"   예: '{country_name} 왕실모독죄 SNS 처벌', '{country_name} 마약 소지 형량',\n"
+        f"       '{country_name} 관세법 반입 금지'.\n"
         "2) 검색 결과를 근거로 submit_verdict 도구를 호출해 최종 판정을 제출한다.\n"
         "\n"
-        "엄격한 규칙:\n"
+        "엄격한 규칙 — 근거 채택 기준:\n"
+        f"- 대상 국가('{country_name}')의 법률·정부기관·현지 언론 자료만\n"
+        "  근거로 인정한다.\n"
+        "- 한국 국내법(예: 대한민국 형법 제311조, 정보통신망법, 대법원 판례 등)이나\n"
+        "  다른 나라 법률에 관한 자료는 아무리 관련 있어 보여도 근거로 채택하지\n"
+        f"  마라. 그런 자료뿐이면 verdict 는 반드시 '근거미발견' 이다.\n"
         "- 사전 지식만으로는 절대 '근거있음' 판정을 내리지 마라.\n"
         "- web_search 결과에 신뢰할 만한 URL이 없으면 verdict 는 반드시 '근거미발견'.\n"
         "- 검색이 충분하다고 판단되면 반드시 submit_verdict 를 호출해 마무리하라."
@@ -437,11 +446,15 @@ def verify_claim(claim: str) -> dict:
     messages: list[dict] = [{
         "role": "user",
         "content": (
-            "아래 주장을 검증하라. 반드시 web_search 로 먼저 조사한 뒤 "
-            "submit_verdict 로 결과를 넘겨라.\n"
-            "- 정부·대사관·공신력 있는 기관 문서에서 확인되면 verdict: 근거있음\n"
+            f"대상 국가: {country_name}\n"
+            f"아래 주장을 '{country_name}' 의 법률·처벌 관점에서 검증하라.\n"
+            f"web_search 쿼리에는 반드시 '{country_name}' 이름을 포함시킨다.\n"
+            f"- {country_name} 정부·대사관·공신력 있는 기관 문서에서 확인되면\n"
+            "  verdict: 근거있음\n"
             "- 신뢰할 만한 출처를 찾지 못하거나 확인이 안 되면 verdict: 근거미발견\n"
-            "- 신뢰할 만한 출처가 주장과 반대되면 verdict: 상충\n"
+            f"- 검색 결과가 {country_name} 법이 아니라 한국 국내법이나 제3국 법을\n"
+            "  다루면 근거로 쓰지 말고 verdict: 근거미발견\n"
+            f"- 신뢰할 만한 {country_name} 자료가 주장과 반대되면 verdict: 상충\n"
             "sources 에는 실제로 확인한 URL만 넣어라. 없으면 빈 배열.\n"
             "summary 는 1~2문장으로 근거를 요약하라.\n\n"
             f"주장: {claim}"
@@ -698,7 +711,7 @@ def display_label(path: Path) -> str:
     return f"{country} · {ds[:4]}-{ds[4:6]}-{ds[6:]} {ts[:2]}:{ts[2:]}"
 
 
-def run_verification(body_html: str) -> list[dict]:
+def run_verification(body_html: str, country: str) -> list[dict]:
     """법률 주장 추출 + 상위 6건 웹 검색 검증. 진행 상황을 화면에 표시."""
     with st.spinner("본문에서 법률 관련 주장 추출 중..."):
         try:
@@ -734,7 +747,7 @@ def run_verification(body_html: str) -> list[dict]:
     progress = st.progress(0.0, text=f"검증 중 0/{len(to_verify)}")
     for i, claim in enumerate(to_verify):
         try:
-            v = verify_claim(claim)
+            v = verify_claim(claim, country)
         except Exception as e:
             v = {"verdict": "근거미발견", "sources": [], "summary": f"(검증 오류) {e}"}
         rows.append({"claim": claim, **v})
@@ -1023,7 +1036,7 @@ if submitted:
         f'{gen.get("body_html", "")}\n'
         f'<p>정보 확인일: {date.today().isoformat()}</p>'
     )
-    verification_rows = run_verification(body_html_with_date)
+    verification_rows = run_verification(body_html_with_date, country)
 
     payload = {
         "country": country,
