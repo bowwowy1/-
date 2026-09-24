@@ -13,6 +13,7 @@ load_dotenv()
 
 PROMPT_PATH = Path(__file__).parent / "prompts" / "travel.txt"
 ANGLES_PROMPT_PATH = Path(__file__).parent / "prompts" / "angles.txt"
+THREADS_PROMPT_PATH = Path(__file__).parent / "prompts" / "threads.txt"
 OUTPUTS_DIR = Path(__file__).parent / "outputs"
 MODEL_ID = "claude-sonnet-5"
 
@@ -23,6 +24,10 @@ def load_system_prompt() -> str:
 
 def load_angles_prompt() -> str:
     return ANGLES_PROMPT_PATH.read_text(encoding="utf-8")
+
+
+def load_threads_prompt() -> str:
+    return THREADS_PROMPT_PATH.read_text(encoding="utf-8")
 
 
 def build_user_message(
@@ -274,6 +279,27 @@ ANGLES_TOOL = {
             },
         },
         "required": ["candidates"],
+    },
+}
+
+THREADS_TOOL = {
+    "name": "submit_threads_posts",
+    "description": "블로그 본문을 스레드(Threads) 게시물 4~5개로 재구성해 제출한다.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "posts": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": (
+                    "각 게시물 텍스트. 순수 텍스트만 (HTML/마크다운 금지). "
+                    "공백 포함 450자 이내. 4~5개."
+                ),
+                "minItems": 4,
+                "maxItems": 5,
+            },
+        },
+        "required": ["posts"],
     },
 }
 
@@ -648,6 +674,31 @@ def extract_angles(country: str, references: str) -> list[dict]:
     return result
 
 
+def convert_to_threads(body_html: str) -> list[str]:
+    """블로그 본문 HTML을 스레드 게시물 4~5개로 재구성. 짧은 호출."""
+    client = Anthropic()
+    resp = client.messages.create(
+        model=MODEL_ID,
+        max_tokens=4000,
+        system=load_threads_prompt(),
+        messages=[{
+            "role": "user",
+            "content": (
+                "아래 블로그 본문 초안을 스레드(Threads) 게시물 4~5개로 "
+                "재구성해서 submit_threads_posts 도구로 제출하라.\n"
+                "각 게시물은 공백 포함 450자 이내, 500자 절대 초과 금지, "
+                "순수 텍스트만 사용.\n\n"
+                f"본문 초안 (HTML):\n{body_html}"
+            ),
+        }],
+        tools=[THREADS_TOOL],
+        tool_choice={"type": "tool", "name": THREADS_TOOL["name"]},
+    )
+    data = _extract_tool_input(resp, tool_name=THREADS_TOOL["name"])
+    raw = data.get("posts", [])
+    return [p.strip() for p in raw if isinstance(p, str) and p.strip()]
+
+
 def render_verification_table(rows: list[dict]) -> None:
     def cell(text: str) -> str:
         return html_lib.escape(text).replace("\n", "<br>")
@@ -765,6 +816,22 @@ def run_verification(body_html: str, country: str) -> list[dict]:
     return rows
 
 
+def _persist_threads_to_disk(posts: list[str]) -> None:
+    """현재 result 에 대응하는 outputs/*.json 파일에 threads 키를 병합 저장."""
+    path_str = st.session_state.get("current_output_path")
+    if not path_str:
+        return
+    p = Path(path_str)
+    if not p.exists():
+        return
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+        data["threads"] = posts
+        p.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+
 def render_result(result: dict) -> None:
     country = result.get("country", "")
     trip_type = result.get("trip_type", "")
@@ -773,6 +840,7 @@ def render_result(result: dict) -> None:
     body_html = result.get("body_html", "")
     tags = result.get("tags", [])
     thumbnails = result.get("thumbnails", [])
+    threads = result.get("threads", [])
     verification_rows = result.get("verification_rows", [])
 
     if country or trip_type or generated_at:
@@ -791,6 +859,51 @@ def render_result(result: dict) -> None:
     body_html_for_clipboard = html_for_clipboard(body_html)
     render_copy_button("본문 복사 (서식 유지)", body_html_for_clipboard, body_html_for_clipboard, key="body")
     st.markdown(body_html, unsafe_allow_html=True)
+
+    # 스레드용 변환
+    st.subheader("스레드용 변환")
+    if not threads:
+        thread_btn_disabled = not bool(body_html.strip())
+        if st.button(
+            "스레드용으로 변환",
+            disabled=thread_btn_disabled,
+            help=None if not thread_btn_disabled else "초안 본문이 없습니다.",
+            key="convert_threads_btn",
+        ):
+            with st.spinner("스레드용으로 변환 중..."):
+                try:
+                    posts = convert_to_threads(body_html)
+                    threads_err = None
+                except Exception as e:
+                    posts = []
+                    threads_err = str(e)
+            if threads_err:
+                st.session_state["_threads_error"] = threads_err
+            elif posts:
+                st.session_state["result"]["threads"] = posts
+                _persist_threads_to_disk(posts)
+            else:
+                st.session_state["_threads_error"] = "변환 결과가 비어 있습니다."
+            st.rerun()
+        err = st.session_state.pop("_threads_error", None)
+        if err:
+            st.error(f"스레드 변환 실패: {err}")
+    else:
+        for i, post in enumerate(threads, 1):
+            char_count = len(post)
+            with st.container(border=True):
+                col_head, col_count = st.columns([4, 1])
+                with col_head:
+                    st.markdown(f"**게시물 {i}**")
+                with col_count:
+                    warn = "⚠" if char_count > 500 else ""
+                    st.caption(f"{char_count}자 {warn}".strip())
+                st.write(post)
+                render_copy_button("복사", post, None, key=f"thread_{i}")
+        if st.button("스레드 다시 변환", key="reconvert_threads_btn"):
+            st.session_state["result"].pop("threads", None)
+            _persist_threads_to_disk([])
+            st.rerun()
 
     st.subheader("썸네일 아이디어")
     if not thumbnails:
@@ -848,6 +961,7 @@ with st.sidebar:
                     if was_loaded:
                         st.session_state.pop("result", None)
                         st.session_state.pop("loaded_from", None)
+                        st.session_state.pop("current_output_path", None)
                     st.rerun()
             with c_no:
                 if st.button("취소", key=f"delno_{path.stem}", use_container_width=True):
@@ -868,6 +982,7 @@ with st.sidebar:
                     else:
                         st.session_state["result"] = data
                         st.session_state["loaded_from"] = path.name
+                        st.session_state["current_output_path"] = str(path)
                         st.rerun()
             with c_del:
                 if st.button(
@@ -884,6 +999,7 @@ with st.sidebar:
         if st.button("새 초안 작성", use_container_width=True):
             st.session_state.pop("result", None)
             st.session_state.pop("loaded_from", None)
+            st.session_state.pop("current_output_path", None)
             st.rerun()
 
 st.title("여행 블로그 초안 생성기")
@@ -1008,6 +1124,7 @@ if submitted and st.session_state.get("test_mode"):
     st.info(f"테스트 모드: API 호출 없이 outputs/{latest.name} 를 불러왔습니다.")
     st.session_state["result"] = data
     st.session_state["loaded_from"] = latest.name
+    st.session_state["current_output_path"] = str(latest)
     submitted = False  # 아래 실제 생성 분기 스킵
 
 if submitted:
@@ -1054,6 +1171,7 @@ if submitted:
 
     try:
         saved_path = save_output(payload)
+        st.session_state["current_output_path"] = str(saved_path)
         st.success(f"저장됨: outputs/{saved_path.name}")
     except Exception as e:
         st.warning(f"저장 실패: {e}")
