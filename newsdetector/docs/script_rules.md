@@ -11,14 +11,15 @@
 8. 속 시원한 마무리 한마디 + 고정 CTA
 
 ## 분량
-- 정치한줄 대본 40개 통계로 확정한다. 측정 스크립트: `scripts/measure_length.py`, 입력: `data/benchmark/jeongchi_scripts.txt`.
-- 확정 항목:
-  - `target_min`: 공백 포함 하위 25% (Q1)
-  - `target_max`: 공백 포함 상위 75% (Q3)
-  - `median`: 공백 포함 중앙값
+- 정치한줄 대본 40개(`data/benchmark/jeongchi_scripts.txt`) 를 `scripts/measure_length.py` 로 측정해 확정했다. 상세 통계는 `data/benchmark/length_stats.json`.
+- 확정 값 (공백 포함, 40개 표본):
+  - `target_min`: 697자 (Q1 = 697.25)
+  - `target_max`: 749자 (Q3 = 749.25)
+  - `median`: 720자 (중앙값)
+  - 참고: 평균 722.38, 최소 651, 최대 788
   - `speech_rate`: 5.34 (초당 글자 수, 기존 기준 유지)
-  - 예상 재생 시간(초): 글자 수 ÷ 5.34 를 `target_min` 과 `target_max` 에 각각 적용한다.
-- 현재 상태: 벤치마크 입력 파일 `data/benchmark/jeongchi_scripts.txt` 가 저장소에 아직 없어 값은 확정 대기(TBD)다. 파일을 넣은 뒤 `python3 scripts/measure_length.py` 를 실행하면 `data/benchmark/length_stats.json` 이 생성되고, 그 결과로 `config/templates.yaml` 의 `length` 항목과 위 값들을 채운다.
+  - 예상 재생 시간: 697자 ÷ 5.34 ≈ **130.5초**, 749자 ÷ 5.34 ≈ **140.3초**
+- 재측정: 벤치마크 파일이 갱신되면 `python3 scripts/measure_length.py` 를 다시 실행해 `config/templates.yaml` 의 `length` 항목을 갱신한다.
 
 ## 사실 경계 체크 대상
 - 숫자(금액, 비율, 건수, 기간)는 출처 기사가 있어야 한다.

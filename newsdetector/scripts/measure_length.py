@@ -5,11 +5,11 @@ measure_length.py — 정치한줄 대본 40개의 분량을 측정한다.
     newsdetector/data/benchmark/jeongchi_scripts.txt
 
 파일 형식:
-    각 대본은 "**번호. 제목 #해시태그**" 줄로 시작한다.
-    본문이 이어지고, 끝에 [번호] 각주가 붙는다.
+    각 대본은 한 줄이며, "**N\. 제목 #해시태그**" 인라인 헤더로 시작하고
+    본문이 같은 줄에 이어지며 끝에 [N] 각주가 붙는다. 대본 사이에 빈 줄이 있다.
 
 측정 규칙:
-    - 제목 줄("**...**"), 해시태그(#...), [번호] 각주는 본문에서 제외한다.
+    - 헤더("**...**") 부분과 [번호] 각주는 본문에서 제외한다.
     - 대본마다 공백 포함 글자 수, 공백 제외 글자 수를 센다.
     - 40개 대본 전체에 대해 평균, 중앙값, 최소, 최대, 하위 25%, 상위 75%를 낸다.
 
@@ -31,42 +31,40 @@ ROOT = Path(__file__).resolve().parent.parent
 INPUT_PATH = ROOT / "data" / "benchmark" / "jeongchi_scripts.txt"
 OUTPUT_PATH = ROOT / "data" / "benchmark" / "length_stats.json"
 
-# 대본 시작 줄: "**1. 제목 #해시태그**" 형태
-HEADER_RE = re.compile(r"^\s*\*\*\s*(\d+)\.\s*(.*?)\*\*\s*$")
+# 인라인 헤더: "**1\. 제목 #해시태그** 본문..." 형태
+# 백슬래시 이스케이프(\\.) 도 허용한다.
+INLINE_HEADER_RE = re.compile(r"^\s*\*\*\s*(\d+)\\?\.\s*(.*?)\*\*\s*(.*)$")
 # 각주: "[1]", "[12]"
 FOOTNOTE_RE = re.compile(r"\[\d+\]")
-# 해시태그: "#단어" (한글 포함)
-HASHTAG_RE = re.compile(r"#\S+")
 
 
 def split_scripts(raw: str) -> list[dict]:
-    """헤더 줄을 기준으로 대본을 나눈다."""
+    """인라인 헤더 줄을 기준으로 대본을 나눈다."""
     scripts: list[dict] = []
-    current: dict | None = None
     for line in raw.splitlines():
-        m = HEADER_RE.match(line)
-        if m:
-            if current is not None:
-                scripts.append(current)
-            current = {
+        if not line.strip():
+            continue
+        m = INLINE_HEADER_RE.match(line)
+        if not m:
+            # 헤더 없이 이어진 줄은 방금 담은 대본에 이어붙인다.
+            if scripts:
+                scripts[-1]["body_lines"].append(line)
+            continue
+        scripts.append(
+            {
                 "number": int(m.group(1)),
                 "title": m.group(2).strip(),
-                "body_lines": [],
+                "body_lines": [m.group(3)],
             }
-        else:
-            if current is not None:
-                current["body_lines"].append(line)
-    if current is not None:
-        scripts.append(current)
+        )
     return scripts
 
 
 def clean_body(lines: list[str]) -> str:
-    """본문에서 해시태그, 각주를 제거하고 하나의 문자열로 합친다."""
-    body = "\n".join(lines)
-    body = HASHTAG_RE.sub("", body)
+    """본문에서 각주만 제거하고 하나의 문자열로 합친다. 해시태그는 헤더에만 있으므로 별도 제거하지 않는다."""
+    body = " ".join(lines)
     body = FOOTNOTE_RE.sub("", body)
-    return body
+    return body.strip()
 
 
 def count_chars(text: str) -> tuple[int, int]:
