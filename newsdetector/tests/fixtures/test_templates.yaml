@@ -1,0 +1,21 @@
+# 테스트 전용 templates.yaml
+# 프로덕션 config/templates.yaml 의 length 가 아직 확정 대기(TBD)인 동안에도
+# validator 를 완전 검증하기 위한 테스트용 값을 고정한다.
+# (정치한줄 대본 40개 통계로 length 를 확정하면 프로덕션 templates.yaml 만 갱신하면 된다.)
+
+length:
+  status: confirmed
+  target_min: 450
+  target_max: 580
+  median: 515
+  speech_rate: 5.34
+  estimated_seconds:
+    min: 84
+    max: 109
+
+fixed_phrases:
+  opening: "이거 사실이야?"
+  transition: "무슨 내용인지 바로 알려줄게"
+  twist_hook: "이건 몰랐지?"
+  mechanism_hook: "왜냐고?"
+  cta: "~면 구독과 좋아요 부탁하고 여러분의 생각을 댓글로 남겨주세요"
