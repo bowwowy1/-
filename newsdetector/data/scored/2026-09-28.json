@@ -1,0 +1,378 @@
+{
+  "generated_at": "2026-09-28",
+  "count": 8,
+  "pairs": [
+    {
+      "rank": 1,
+      "score": 140.0,
+      "status": "CONFIRMED",
+      "article_a": {
+        "id": "a005",
+        "title": "이재명 대통령, 인사 카드 '이 타이밍에 왜' 논란",
+        "url": "https://example.com/a005",
+        "source": "중앙일보",
+        "published_at": "2026-01-16T13:00:00"
+      },
+      "article_b": {
+        "id": "b005",
+        "title": "대통령실 강훈식, 국민의힘 지도부와 충돌 뒤 사의",
+        "url": "https://example.com/b005",
+        "source": "한국일보",
+        "published_at": "2026-01-17T11:00:00"
+      },
+      "common_keywords": [
+        "대통령실",
+        "사의",
+        "인사"
+      ],
+      "day_diff": 0.92,
+      "breakdown": {
+        "category": {
+          "score": 100,
+          "name": "인사·권력 이동"
+        },
+        "pairing": {
+          "score": 25,
+          "detail": "키워드 15 + 시간 10"
+        },
+        "weight_multiplier": {
+          "value": 1.0,
+          "actor": "이재명"
+        },
+        "frame_bonus": {
+          "score": 15,
+          "labels": [
+            "미스터리 프레임"
+          ]
+        },
+        "penalty": {
+          "score": 0,
+          "reasons": []
+        }
+      }
+    },
+    {
+      "rank": 2,
+      "score": 130.0,
+      "status": "CONFIRMED",
+      "article_a": {
+        "id": "b005",
+        "title": "대통령실 강훈식, 국민의힘 지도부와 충돌 뒤 사의",
+        "url": "https://example.com/b005",
+        "source": "한국일보",
+        "published_at": "2026-01-17T11:00:00"
+      },
+      "article_b": {
+        "id": "b001",
+        "title": "국토부 감사 결과 '도성회 40년 휴게소 특혜' 적발",
+        "url": "https://example.com/b001",
+        "source": "한겨레",
+        "published_at": "2026-01-17T08:30:00"
+      },
+      "common_keywords": [
+        "감사"
+      ],
+      "day_diff": 0.1,
+      "breakdown": {
+        "category": {
+          "score": 100,
+          "name": "인사·권력 이동"
+        },
+        "pairing": {
+          "score": 15,
+          "detail": "키워드 5 + 시간 10"
+        },
+        "weight_multiplier": {
+          "value": 1.0,
+          "actor": "강훈식"
+        },
+        "frame_bonus": {
+          "score": 15,
+          "labels": [
+            "미스터리 프레임"
+          ]
+        },
+        "penalty": {
+          "score": 0,
+          "reasons": []
+        }
+      }
+    },
+    {
+      "rank": 3,
+      "score": 120.0,
+      "status": "CONFIRMED",
+      "article_a": {
+        "id": "b005",
+        "title": "대통령실 강훈식, 국민의힘 지도부와 충돌 뒤 사의",
+        "url": "https://example.com/b005",
+        "source": "한국일보",
+        "published_at": "2026-01-17T11:00:00"
+      },
+      "article_b": {
+        "id": "b002",
+        "title": "농협 갑질에 눈물 흘린 농민 '배 2600상자 반토막 정산'",
+        "url": "https://example.com/b002",
+        "source": "경향신문",
+        "published_at": "2026-01-12T14:00:00"
+      },
+      "common_keywords": [
+        "감사"
+      ],
+      "day_diff": 4.88,
+      "breakdown": {
+        "category": {
+          "score": 100,
+          "name": "인사·권력 이동"
+        },
+        "pairing": {
+          "score": 5,
+          "detail": "키워드 5 + 시간 0"
+        },
+        "weight_multiplier": {
+          "value": 1.0,
+          "actor": "강훈식"
+        },
+        "frame_bonus": {
+          "score": 15,
+          "labels": [
+            "미스터리 프레임"
+          ]
+        },
+        "penalty": {
+          "score": 0,
+          "reasons": []
+        }
+      }
+    },
+    {
+      "rank": 4,
+      "score": 110.0,
+      "status": "CONFIRMED",
+      "article_a": {
+        "id": "a001",
+        "title": "이재명 대통령, 국무회의서 휴게소 밥값 질타",
+        "url": "https://example.com/a001",
+        "source": "연합뉴스",
+        "published_at": "2026-01-15T09:00:00"
+      },
+      "article_b": {
+        "id": "b001",
+        "title": "국토부 감사 결과 '도성회 40년 휴게소 특혜' 적발",
+        "url": "https://example.com/b001",
+        "source": "한겨레",
+        "published_at": "2026-01-17T08:30:00"
+      },
+      "common_keywords": [
+        "국토부",
+        "도로공사",
+        "휴게소"
+      ],
+      "day_diff": 1.98,
+      "breakdown": {
+        "category": {
+          "score": 90,
+          "name": "지방정부 충돌"
+        },
+        "pairing": {
+          "score": 20,
+          "detail": "키워드 15 + 시간 5"
+        },
+        "weight_multiplier": {
+          "value": 1.0,
+          "actor": "이재명"
+        },
+        "frame_bonus": {
+          "score": 0,
+          "labels": []
+        },
+        "penalty": {
+          "score": 0,
+          "reasons": []
+        }
+      }
+    },
+    {
+      "rank": 5,
+      "score": 105.0,
+      "status": "CONFIRMED",
+      "article_a": {
+        "id": "a002",
+        "title": "이재명 대통령, 농협 참교육 예고 '카르텔 못 봐준다'",
+        "url": "https://example.com/a002",
+        "source": "연합뉴스",
+        "published_at": "2026-01-10T10:00:00"
+      },
+      "article_b": {
+        "id": "b002",
+        "title": "농협 갑질에 눈물 흘린 농민 '배 2600상자 반토막 정산'",
+        "url": "https://example.com/b002",
+        "source": "경향신문",
+        "published_at": "2026-01-12T14:00:00"
+      },
+      "common_keywords": [
+        "농협",
+        "카르텔"
+      ],
+      "day_diff": 2.17,
+      "breakdown": {
+        "category": {
+          "score": 90,
+          "name": "지방정부 충돌"
+        },
+        "pairing": {
+          "score": 15,
+          "detail": "키워드 10 + 시간 5"
+        },
+        "weight_multiplier": {
+          "value": 1.0,
+          "actor": "이재명"
+        },
+        "frame_bonus": {
+          "score": 0,
+          "labels": []
+        },
+        "penalty": {
+          "score": 0,
+          "reasons": []
+        }
+      }
+    },
+    {
+      "rank": 6,
+      "score": 95.0,
+      "status": "CONFIRMED",
+      "article_a": {
+        "id": "a002",
+        "title": "이재명 대통령, 농협 참교육 예고 '카르텔 못 봐준다'",
+        "url": "https://example.com/a002",
+        "source": "연합뉴스",
+        "published_at": "2026-01-10T10:00:00"
+      },
+      "article_b": {
+        "id": "b001",
+        "title": "국토부 감사 결과 '도성회 40년 휴게소 특혜' 적발",
+        "url": "https://example.com/b001",
+        "source": "한겨레",
+        "published_at": "2026-01-17T08:30:00"
+      },
+      "common_keywords": [
+        "카르텔"
+      ],
+      "day_diff": 6.94,
+      "breakdown": {
+        "category": {
+          "score": 90,
+          "name": "지방정부 충돌"
+        },
+        "pairing": {
+          "score": 5,
+          "detail": "키워드 5 + 시간 0"
+        },
+        "weight_multiplier": {
+          "value": 1.0,
+          "actor": "이재명"
+        },
+        "frame_bonus": {
+          "score": 0,
+          "labels": []
+        },
+        "penalty": {
+          "score": 0,
+          "reasons": []
+        }
+      }
+    },
+    {
+      "rank": 7,
+      "score": 90.0,
+      "status": "CONFIRMED",
+      "article_a": {
+        "id": "a001",
+        "title": "이재명 대통령, 국무회의서 휴게소 밥값 질타",
+        "url": "https://example.com/a001",
+        "source": "연합뉴스",
+        "published_at": "2026-01-15T09:00:00"
+      },
+      "article_b": {
+        "id": "a002",
+        "title": "이재명 대통령, 농협 참교육 예고 '카르텔 못 봐준다'",
+        "url": "https://example.com/a002",
+        "source": "연합뉴스",
+        "published_at": "2026-01-10T10:00:00"
+      },
+      "common_keywords": [
+        "국무회의",
+        "지시"
+      ],
+      "day_diff": 4.96,
+      "breakdown": {
+        "category": {
+          "score": 80,
+          "name": "기관·카르텔 응징"
+        },
+        "pairing": {
+          "score": 10,
+          "detail": "키워드 10 + 시간 0"
+        },
+        "weight_multiplier": {
+          "value": 1.0,
+          "actor": "이재명"
+        },
+        "frame_bonus": {
+          "score": 0,
+          "labels": []
+        },
+        "penalty": {
+          "score": 0,
+          "reasons": []
+        }
+      }
+    },
+    {
+      "rank": 8,
+      "score": 85.0,
+      "status": "CONFIRMED",
+      "article_a": {
+        "id": "a002",
+        "title": "이재명 대통령, 농협 참교육 예고 '카르텔 못 봐준다'",
+        "url": "https://example.com/a002",
+        "source": "연합뉴스",
+        "published_at": "2026-01-10T10:00:00"
+      },
+      "article_b": {
+        "id": "b004",
+        "title": "쿠팡 갑질 논란 '납품업체 단가 강제 인하'",
+        "url": "https://example.com/b004",
+        "source": "조선비즈",
+        "published_at": "2026-01-16T10:00:00"
+      },
+      "common_keywords": [
+        "카르텔"
+      ],
+      "day_diff": 6.0,
+      "breakdown": {
+        "category": {
+          "score": 80,
+          "name": "기관·카르텔 응징"
+        },
+        "pairing": {
+          "score": 5,
+          "detail": "키워드 5 + 시간 0"
+        },
+        "weight_multiplier": {
+          "value": 1.0,
+          "actor": "이재명"
+        },
+        "frame_bonus": {
+          "score": 0,
+          "labels": []
+        },
+        "penalty": {
+          "score": 0,
+          "reasons": []
+        }
+      }
+    }
+  ]
+}

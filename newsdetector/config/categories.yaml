@@ -189,7 +189,7 @@ modifiers:
   - id: comparison_frame
     label: 비교형 프레임
     delta: +10
-    description: "~와 비교되는 이대통령" 같은 비교 구도.
+    description: '"~와 비교되는 이대통령" 같은 비교 구도.'
     evidence:
       - title_summary: 윤석열 비교 유엔연설
         views: 330000
@@ -201,7 +201,7 @@ modifiers:
   - id: mystery_timing
     label: 여권 이슈의 미스터리 프레임
     delta: +15
-    description: "이 타이밍에 왜?" 같은 미스터리 훅. 인사·권력 이동 카테고리에 자주 붙는다.
+    description: '"이 타이밍에 왜?" 같은 미스터리 훅. 인사·권력 이동 카테고리에 자주 붙는다.'
     evidence:
       - title_summary: 강훈식 사의설
         views: 2010000
