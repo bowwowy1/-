@@ -84,36 +84,43 @@ proxies:
     notes: 웹 검색으로 확인 (쿠키뉴스 "이원택 전북도지사 당선인").
   - name: 민형배
     role: proxy
-    position: 확인 필요 (호남 광역단체장 후보)
+    position: 전남광주통합특별시장(초대)
     weight: 1.0
-    verified: false
-    notes: |
-      사용자 지시에서 "호남 광역단체장, 지역 확인 필요"로 명시.
-      웹 검색 결과는 "전남광주통합특별시장" 언급이 있었으나
-      2026 지방선거 시점에 통합 여부가 애매해 단정하기 어렵다.
-      2단계 이후 개별 확인이 필요하다.
+    verified: true
+    source: https://news.kbs.co.kr/news/view.do?ncd=8577409
+    notes: 2026년 7월 출범 예정 전남광주통합특별시 초대 시장.
 
   # 대통령실
   - name: 강훈식
     role: proxy
-    position: 대통령실 (확인 필요)
+    position: 대통령실
     weight: 1.0
     verified: false
+    source: https://news.kbs.co.kr/news/view.do?ncd=8668639
     notes: |
-      docs/sourcing.md 는 "강훈식(대통령실)"으로 표기.
-      정치한줄에서 강훈식 사의설 소재 영상이 201만 회(채널 평균 40.5배)를
-      기록했으므로 실제 직책이 바뀌었을 가능성이 있다. 재확인 필요.
+      사의 표명, 대통령 "아직 결정 못 해" — 수리 여부 미확인.
+      정치한줄에서 강훈식 사의설 소재 영상이 201만 회(채널 평균 40.5배)를 기록.
 
   # 내각
   - name: 구윤철
     role: proxy
-    position: 내각 (부총리 등, 확인 필요)
+    position: 내각 (부총리, 교체 발표됨)
     weight: 1.0
-    verified: false
+    verified: true
+    source: https://www.yna.co.kr/view/MYH20260831000300038
     notes: |
-      docs/sourcing.md 는 "구윤철(내각)"으로 표기.
-      정치한줄 "구윤철 교체" 소재가 138만 회를 기록해 교체설이 돌고 있다.
-      현재 직책을 재확인해야 한다.
+      2026.8.30 개각으로 교체 발표, 후임 이형일 후보자.
+      정치한줄 "구윤철 교체" 소재가 138만 회를 기록.
+
+# 내각 (개각 후 신규)
+cabinet:
+  - name: 이형일
+    role: cabinet
+    position: 재정경제부 장관 후보자
+    weight: 1.0
+    verified: true
+    source: https://www.yna.co.kr/view/MYH20260831000300038
+    notes: 2026.8.30 개각에서 구윤철 후임으로 지명.
 
 # 상대 (악역 후보)
 opponents:
