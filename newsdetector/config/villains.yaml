@@ -1,0 +1,56 @@
+# 악역 풀 (유형별)
+# 소재의 "상대" 자리에 넣을 악역 후보. 얼굴을 쓸 수 있어야 한다.
+# 개인 이름 목록은 people.yaml 의 opponents 를 참고한다.
+
+villains:
+  - type: opposition_local_head
+    label: 국민의힘 단체장
+    description: 여권 광역단체장과 충돌하는 국힘 소속 지자체장
+    examples: []
+
+  - type: opposition_local_council
+    label: 국민의힘 지방의원
+    description: 조례·예산 의결권으로 여권 단체장을 막는 국힘 소속 지방의회 의원
+    examples: []
+
+  - type: opposition_leadership
+    label: 국민의힘 지도부
+    description: 국힘 당대표, 원내대표, 최고위원 등
+    examples: []
+
+  - type: uncooperative_bureaucrat
+    label: 말 안 듣는 공무원·기관장
+    description: 대통령·정부의 지시를 이행하지 않는 공무원과 공공기관장
+    examples: []
+
+  - type: judiciary
+    label: 사법부
+    description: 여권에 불리한 판결을 낸 판사, 검찰
+    examples: []
+
+  - type: media
+    label: 언론
+    description: 여권에 부정적으로 프레이밍하는 언론사
+    examples: []
+
+  - type: cartel_group
+    label: 카르텔 단체
+    description: 공기업 퇴직자 모임, 협회 등 이권 카르텔
+    examples:
+      - 도성회 (도로공사 퇴직자 모임)
+
+  - type: foreign_japan
+    label: 일본
+    description: 악역이 국내에 없을 때 세우는 외부 악역
+    examples: []
+
+  - type: vague_forces
+    label: 일부 세력 / 비판하는 사람들
+    description: 구체적 악역을 특정하기 어려울 때 쓰는 대체 악역 프레임
+    examples: []
+
+  - type: chaebol_hostile
+    label: 여권과 각 세운 재벌·기업
+    description: 여권과 충돌하는 기업. 조력자 재벌과 구분한다.
+    examples:
+      - 쿠팡

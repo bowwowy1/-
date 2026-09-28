@@ -1,0 +1,98 @@
+# 카테고리 서열
+# 필드: id, name, rank, score(TBD), keywords
+# 서열은 시기에 따라 바뀌므로 고정값이 아니다. 2단계에서 score 를 정한다.
+
+categories:
+  - id: personnel
+    name: 인사·권력 이동
+    rank: 1
+    score: TBD
+    keywords:
+      - 임명
+      - 교체
+      - 사의
+      - 이 타이밍에 왜
+
+  - id: local_conflict
+    name: 지방정부 충돌
+    rank: 2
+    score: TBD
+    keywords:
+      - 여권 단체장
+      - 국힘 지방의회
+      - 공무원
+      - 삭감
+      - 부결
+      - 감사
+
+  - id: cartel_punishment
+    name: 기관·카르텔 응징
+    rank: 3
+    score: TBD
+    keywords:
+      - 공기업
+      - 협회
+      - 카르텔
+      - 지시 불이행
+      - 적발
+      - 감사 결과
+
+  - id: diplomacy_win
+    name: 외교 승리형
+    rank: 4
+    score: TBD
+    keywords:
+      - 상대국 꼬리 내림
+      - 한국에 매달림
+      - 순방
+      - 방한 접견
+      - 정상 통화
+      - 서한
+
+  - id: chaebol_link
+    name: 재벌 + 대통령 연결
+    rank: 5
+    score: TBD
+    keywords:
+      - 삼성
+      - SK
+      - 현대
+      - 방산
+      - 원전
+      - 에너지
+      - 예산
+      - 순방
+      - 약속
+
+# 하위 카테고리 (조회수가 상대적으로 약함)
+lower_categories:
+  - id: trump_general
+    name: 트럼프 일반 소식
+    rank: 6
+    score: TBD
+    keywords:
+      - 트럼프
+
+  - id: china_general
+    name: 중국 소재
+    rank: 7
+    score: TBD
+    keywords:
+      - 중국
+      - 시진핑
+
+  - id: ruling_party_critique
+    name: 여당 인물 비판
+    rank: 8
+    score: TBD
+    keywords:
+      - 여당
+      - 지도부
+
+  - id: approval_rating
+    name: 지지율 정면 보도
+    rank: 9
+    score: TBD
+    keywords:
+      - 지지율
+      - 여론조사
