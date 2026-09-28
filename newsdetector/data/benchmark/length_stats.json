@@ -1,0 +1,262 @@
+{
+  "with_space": {
+    "count": 40,
+    "mean": 722.38,
+    "median": 720.0,
+    "min": 651,
+    "max": 788,
+    "q1": 697.25,
+    "q3": 749.25
+  },
+  "without_space": {
+    "count": 40,
+    "mean": 538.48,
+    "median": 536.0,
+    "min": 479,
+    "max": 590,
+    "q1": 523.0,
+    "q3": 558.75
+  },
+  "per_script": [
+    {
+      "number": 1,
+      "title": "감히 한국배를 공격해? 이란 참교육 시동건 이재명 대통령 근황 #이재명 #더불어민주당",
+      "chars_with_space": 756,
+      "chars_without_space": 561
+    },
+    {
+      "number": 2,
+      "title": "국민이 만만해? 이대통령이 농협 참교육을 시작한 이유 #이재명 #더불어민주당",
+      "chars_with_space": 751,
+      "chars_without_space": 553
+    },
+    {
+      "number": 3,
+      "title": "뒷통수 칠땐 언제고? 애플이 이재용 회장에게 sos를 날린 이유 #이재명 #이재용 #더불어민주당",
+      "chars_with_space": 716,
+      "chars_without_space": 533
+    },
+    {
+      "number": 4,
+      "title": "마케팅 직원이었다고? 장동혁이 미국가서 만난 개빈왁스의 충격적인 정체 #이재명 #더불어민주당",
+      "chars_with_space": 715,
+      "chars_without_space": 525
+    },
+    {
+      "number": 5,
+      "title": "말만 하고 안한다고? 국민 주머니 털던 악덕기관 참교육 시작한 이대통령 #이재명 #더불어민주당",
+      "chars_with_space": 784,
+      "chars_without_space": 585
+    },
+    {
+      "number": 6,
+      "title": "말안듣는 공무원 이대통령이 직접 형사처벌 지시한 이유 #이재명 #더불어민주당",
+      "chars_with_space": 723,
+      "chars_without_space": 534
+    },
+    {
+      "number": 7,
+      "title": "미국 믿고 또 선넘네? 뻔뻔한 쿠팡 참교육 시작한 이대통령 #이재명 #더불어민주당",
+      "chars_with_space": 722,
+      "chars_without_space": 541
+    },
+    {
+      "number": 8,
+      "title": "미국에게 선빵 날려 우리기업들 살리는 이대통령의 미친 외교력 #이재명 #트럼프 #더불어민주당",
+      "chars_with_space": 709,
+      "chars_without_space": 531
+    },
+    {
+      "number": 9,
+      "title": "삼성 하이닉스 난리났다 이대통령이 몰래 밀어준 '미친 기술'의 정체 #이재명 #더불어민주당",
+      "chars_with_space": 725,
+      "chars_without_space": 540
+    },
+    {
+      "number": 10,
+      "title": "삼성1.6조짜리 기술을 중국에 팔았어? 분노한 이대통령의 역대급 지시 #이재명 #더불어민주당",
+      "chars_with_space": 717,
+      "chars_without_space": 529
+    },
+    {
+      "number": 11,
+      "title": "삼성노조도 결국 이대통령이 해결하나? 노조갈등 해결하는 유일한 방법 #이재명 #이재용 #더불어민주당",
+      "chars_with_space": 691,
+      "chars_without_space": 520
+    },
+    {
+      "number": 12,
+      "title": "실시간 난리난 유럽 전역이 이대통령 눈치를 보고 있는 이유 #이재명 #더불어민주당",
+      "chars_with_space": 734,
+      "chars_without_space": 544
+    },
+    {
+      "number": 13,
+      "title": "연말부터 바뀌나? 이대통령이 직접 지시한 달라진 기초연금 받는 법 #이재명 #더불어민주당",
+      "chars_with_space": 677,
+      "chars_without_space": 502
+    },
+    {
+      "number": 14,
+      "title": "요즘 애들 왜그래? 이대통령이 직접 언급한 이유 #이재명 #더불어민주당",
+      "chars_with_space": 722,
+      "chars_without_space": 540
+    },
+    {
+      "number": 15,
+      "title": "이대통령 스타일인데? 시진핑 만나러 가는 트럼프의 소름 돋는 전략 #이재명 #트럼프 #시진핑 #더불어민주당",
+      "chars_with_space": 676,
+      "chars_without_space": 510
+    },
+    {
+      "number": 16,
+      "title": "이대통령 지시를 무시해? 전국민이 알아야하는 실태 #이재명 #더불어민주당",
+      "chars_with_space": 699,
+      "chars_without_space": 531
+    },
+    {
+      "number": 17,
+      "title": "이대통령과 정의선회장이 중국과 일본을 제치고 해낸 베트남과의 역대급 계약 #이재명 #정의선 #더불어민주당",
+      "chars_with_space": 687,
+      "chars_without_space": 519
+    },
+    {
+      "number": 18,
+      "title": "이대통령이 그렇게 챙겼것만.. 철근 2500개 빼먹고 시공한 건설사의 정체 #이재명 #더불어민주당",
+      "chars_with_space": 727,
+      "chars_without_space": 536
+    },
+    {
+      "number": 19,
+      "title": "이대통령이 만만해? 트럼프가 가짜뉴스로 한국에 또 시비건 이유 #이재명 #트럼프 #더불어민주당",
+      "chars_with_space": 725,
+      "chars_without_space": 538
+    },
+    {
+      "number": 20,
+      "title": "이대통령이 멕시코 대통령의 무례한 BTS요청을 들어준 진짜 이유 #이재명 #멕시코 #bts",
+      "chars_with_space": 749,
+      "chars_without_space": 562
+    },
+    {
+      "number": 21,
+      "title": "이대통령이 베트남에서 체결한 역대급 MOU를 보고 일본이 배알 꼴리는 이유 #이재명 #더불어민주당",
+      "chars_with_space": 718,
+      "chars_without_space": 536
+    },
+    {
+      "number": 22,
+      "title": "이대통령이 전국민에게 준비한 퇴임 선물의 정체 #이재명 #더불어민주당",
+      "chars_with_space": 766,
+      "chars_without_space": 567
+    },
+    {
+      "number": 23,
+      "title": "이대통령이 직접 나서자 뒤늦게 밝혀진 지방 공무원들의 충격적인 사실 #이재명 #더불어민주당",
+      "chars_with_space": 784,
+      "chars_without_space": 586
+    },
+    {
+      "number": 24,
+      "title": "이대통령이 출국직전 철밥통들을 박살내고 간 이유 #이재명 #더불어민주당",
+      "chars_with_space": 763,
+      "chars_without_space": 569
+    },
+    {
+      "number": 25,
+      "title": "이런적이 있었나? 이대통령이 이례적으로 국무회의중에 극대노한 이유 #이재명 #더불어민주당",
+      "chars_with_space": 759,
+      "chars_without_space": 565
+    },
+    {
+      "number": 26,
+      "title": "이미 한국 제치고 따냈다고? 뚜껑 열어보니 한국 하청업체된 일본 근황 #이재명 #더불어민주당",
+      "chars_with_space": 692,
+      "chars_without_space": 507
+    },
+    {
+      "number": 27,
+      "title": "이재명 대통령이 삼성전자 무인공장 선언을 반대 안하는 이유 #이재명 #이재용 #더불어민주당",
+      "chars_with_space": 761,
+      "chars_without_space": 569
+    },
+    {
+      "number": 28,
+      "title": "이재용회장도 못 사서 번호표 뽑고 기다리자 또 도와주려고 시동거는 이대통령 근황 #이재명 #이재용 #더불어민주당",
+      "chars_with_space": 750,
+      "chars_without_space": 558
+    },
+    {
+      "number": 29,
+      "title": "이재용회장이 삼성 노조를 참교육 시킬수있는 유일한 방법 #이재명 #이재용 #더불어민주당",
+      "chars_with_space": 717,
+      "chars_without_space": 534
+    },
+    {
+      "number": 30,
+      "title": "이재용회장이 지금 삼성을 조용히 바꾸고 있는 진짜 이유 #이재용 #이재명 #더불어민주당",
+      "chars_with_space": 747,
+      "chars_without_space": 561
+    },
+    {
+      "number": 31,
+      "title": "일본 노인들이 한국을 베트남이라 부르며 삼성을 절대 인정하지 못하는 이유 #이재명 #이재용 #더불어민주당 #삼성전자",
+      "chars_with_space": 729,
+      "chars_without_space": 537
+    },
+    {
+      "number": 32,
+      "title": "일본한테 쪽팔린짓은 하지 말았어야지.. 이대통령이 참교육 지시한 한국인의 정체 #이재명 #더불어민주당",
+      "chars_with_space": 695,
+      "chars_without_space": 521
+    },
+    {
+      "number": 33,
+      "title": "전 세계가 탐내는 1조 자산가가 트럼프 대신 이대통령을 택한 이유 #이재명 #더불어민주당",
+      "chars_with_space": 692,
+      "chars_without_space": 523
+    },
+    {
+      "number": 34,
+      "title": "전국민에게 욕먹던 현대차 노조 밥그릇 이대통령이 챙겼다고? #이재명 #현대차 #정의선 #더불어민주당",
+      "chars_with_space": 712,
+      "chars_without_space": 531
+    },
+    {
+      "number": 35,
+      "title": "쿠팡이 내정간섭을 할 수 있던 이유와 참교육 시작한 이대통령 #이재명 #더불어민주당",
+      "chars_with_space": 788,
+      "chars_without_space": 590
+    },
+    {
+      "number": 36,
+      "title": "트럼프 패스하고 한국에게 도움 요청한 요르단과 이대통령의 큰 그림 #이재명 #더불어민주당",
+      "chars_with_space": 674,
+      "chars_without_space": 508
+    },
+    {
+      "number": 37,
+      "title": "트럼프와 시진핑이 미중정상회담전에 이대통령에게 보낸 인물들의 정체 #이재명 #트럼프 #시진핑 #더불어민주당",
+      "chars_with_space": 698,
+      "chars_without_space": 523
+    },
+    {
+      "number": 38,
+      "title": "하이닉스 왕따설? 이대통령이 베트남에 최태원 회장만 따로 부른 진짜 이유 #이재명 #최태원 #더불어민주당 #sk하이닉스",
+      "chars_with_space": 718,
+      "chars_without_space": 536
+    },
+    {
+      "number": 39,
+      "title": "한국 다 먹히게 생겼다고? 이대통령과 시진핑의 보이지 않는 싸움 #이재명 #시진핑 #더불어민주당",
+      "chars_with_space": 676,
+      "chars_without_space": 505
+    },
+    {
+      "number": 40,
+      "title": "한국을 스승으로 모실게요 일본이 이대통령에게 매달리는 이유 #이재명 #더불어민주당",
+      "chars_with_space": 651,
+      "chars_without_space": 479
+    }
+  ]
+}

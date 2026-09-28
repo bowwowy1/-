@@ -1,0 +1,43 @@
+# 스토리 공식 A~E
+# 필드: id, name, 설명, 필요한 기사 짝 조건
+
+formulas:
+  - id: A
+    name: 두 기사 접합
+    description: 대통령 발언 기사 + 악역 사례 기사
+    pair_requirement:
+      article_a: 대통령(또는 분신)의 발언, 지시, 순방, 성과 기사
+      article_b: 같은 대상의 구체적 피해, 적발, 감사 결과, 숫자 기사
+      note: A만 있으면 추상적이고 B만 있으면 주인공이 없다. 둘이 붙어야 소재가 된다.
+
+  - id: B
+    name: 악역은 반드시 있다
+    description: 악역이 없으면 일본, "일부 세력", "비판하는 사람들"을 세운다.
+    pair_requirement:
+      article_a: 주인공 쪽 사건
+      article_b: 악역 사례 기사 (없으면 대체 악역 프레임 사용)
+      note: 악역 없이는 이야기가 성립하지 않는다.
+
+  - id: C
+    name: 성과 귀속
+    description: 기업이나 과학계의 성과를 예산, 순방, 약속을 통해 대통령과 연결한다.
+    pair_requirement:
+      article_a: 기업·과학계 성과 기사
+      article_b: 그 성과와 대통령을 잇는 예산·순방·약속 기사
+      note: 연결 고리는 반드시 기사로 확인되어야 한다.
+
+  - id: D
+    name: 불리 뉴스 뒤집기
+    description: 여권에 불리한 뉴스는 배신 프레임("그렇게 챙겨줬건만")이나 공정성 프레임("우리 편이어도 털었다")으로 바꾼다.
+    pair_requirement:
+      article_a: 여권에 불리한 뉴스
+      article_b: 배신 또는 공정성 프레임을 뒷받침할 사실 기사
+      note: 프레임은 세게, 사실은 기사로.
+
+  - id: E
+    name: 조건부 카드 예측
+    description: "검토 중인 카드"(긴급조정권, 가처분 등)를 소재로 쓴다.
+    pair_requirement:
+      article_a: 정부·여권이 검토 중인 카드 기사
+      article_b: 그 카드가 왜 필요한지 보여주는 상황 기사
+      note: 검토 단계라는 사실 자체가 기사로 확인되어야 한다.

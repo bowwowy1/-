@@ -1,0 +1,238 @@
+# 인물 명단 (역할군별)
+# 각 인물 필드: name, role, position, weight(기본 1.0), verified, source(선택), notes(선택)
+# 2026년 6월 3일 제9회 전국동시지방선거 결과를 반영했다. 민주당 12곳, 국민의힘 4곳.
+# 출처: 연합뉴스, 서울신문, 시사IN 인포그래픽, MBC, 쿠키뉴스 등.
+
+# 주인공
+protagonist:
+  - name: 이재명
+    role: protagonist
+    position: 대통령
+    weight: 1.0
+    verified: true
+
+# 분신 (여권 광역단체장 + 대통령실 + 내각)
+proxies:
+  # 민주당 광역단체장 (2026 지방선거 당선)
+  - name: 추미애
+    role: proxy
+    position: 경기도지사
+    weight: 1.0
+    verified: true
+    source: 사용자 지시 (연합뉴스·서울신문 보도)
+  - name: 박찬대
+    role: proxy
+    position: 인천광역시장
+    weight: 1.0
+    verified: true
+    source: 사용자 지시 (연합뉴스·서울신문 보도)
+  - name: 전재수
+    role: proxy
+    position: 부산광역시장
+    weight: 1.0
+    verified: true
+    source: 사용자 지시 + 시사IN 인포그래픽 (부산 탈환)
+  - name: 김상욱
+    role: proxy
+    position: 울산광역시장
+    weight: 1.5
+    verified: true
+    source: 사용자 지시 (연합뉴스·서울신문 보도)
+    notes: 정치한줄에서 10편 이상 반복 등장. 가중치 상향.
+  - name: 우상호
+    role: proxy
+    position: 강원도지사
+    weight: 1.0
+    verified: true
+    source: 사용자 지시 (연합뉴스·서울신문 보도)
+  - name: 허태정
+    role: proxy
+    position: 대전광역시장
+    weight: 1.0
+    verified: true
+    source: 사용자 지시 (연합뉴스·서울신문 보도)
+  - name: 박수현
+    role: proxy
+    position: 충청남도지사
+    weight: 1.0
+    verified: true
+    source: 사용자 지시 (연합뉴스·서울신문 보도)
+  - name: 신용한
+    role: proxy
+    position: 충청북도지사
+    weight: 1.0
+    verified: true
+    source: 사용자 지시 (연합뉴스·서울신문 보도)
+  - name: 조상호
+    role: proxy
+    position: 세종특별자치시장
+    weight: 1.0
+    verified: true
+    source: 사용자 지시 (연합뉴스·서울신문 보도)
+  - name: 위성곤
+    role: proxy
+    position: 제주특별자치도지사
+    weight: 1.0
+    verified: true
+    source: 사용자 지시 (연합뉴스·서울신문 보도)
+  - name: 이원택
+    role: proxy
+    position: 전북특별자치도지사
+    weight: 1.0
+    verified: true
+    source: https://www.kukinews.com/article/view/kuk202606040047
+    notes: 웹 검색으로 확인 (쿠키뉴스 "이원택 전북도지사 당선인").
+  - name: 민형배
+    role: proxy
+    position: 전남광주통합특별시장(초대)
+    weight: 1.0
+    verified: true
+    source: https://news.kbs.co.kr/news/view.do?ncd=8577409
+    notes: 2026년 7월 출범 예정 전남광주통합특별시 초대 시장.
+
+  # 대통령실
+  - name: 강훈식
+    role: proxy
+    position: 대통령실
+    weight: 1.0
+    verified: false
+    source: https://news.kbs.co.kr/news/view.do?ncd=8668639
+    notes: |
+      사의 표명, 대통령 "아직 결정 못 해" — 수리 여부 미확인.
+      정치한줄에서 강훈식 사의설 소재 영상이 201만 회(채널 평균 40.5배)를 기록.
+
+  # 내각
+  - name: 구윤철
+    role: proxy
+    position: 내각 (부총리, 교체 발표됨)
+    weight: 1.0
+    verified: true
+    source: https://www.yna.co.kr/view/MYH20260831000300038
+    notes: |
+      2026.8.30 개각으로 교체 발표, 후임 이형일 후보자.
+      정치한줄 "구윤철 교체" 소재가 138만 회를 기록.
+
+# 내각 (개각 후 신규)
+cabinet:
+  - name: 이형일
+    role: cabinet
+    position: 재정경제부 장관 후보자
+    weight: 1.0
+    verified: true
+    source: https://www.yna.co.kr/view/MYH20260831000300038
+    notes: 2026.8.30 개각에서 구윤철 후임으로 지명.
+
+# 상대 (악역 후보)
+opponents:
+  # 국민의힘 광역단체장 (2026 지방선거 당선)
+  - name: 오세훈
+    role: opponent
+    position: 서울특별시장
+    weight: 1.3
+    verified: true
+    source: 사용자 지시 + 시사IN 인포그래픽
+  - name: 추경호
+    role: opponent
+    position: 대구광역시장
+    weight: 1.3
+    verified: true
+    source: 사용자 지시 + 시사IN 인포그래픽
+  - name: 이철우
+    role: opponent
+    position: 경상북도지사
+    weight: 1.0
+    verified: true
+    source: 사용자 지시 + 시사IN 인포그래픽
+  - name: 박완수
+    role: opponent
+    position: 경상남도지사
+    weight: 1.0
+    verified: true
+    source: https://v.daum.net/v/QIpRTQiPak
+    notes: 웹 검색으로 확인 (다음 "경남지사 박완수 당선 확정"). 재선.
+
+  # 그 밖의 상대 유형 (개별 인물은 2단계 이후 개별 사건별로 채운다)
+  - name: TBD
+    role: opponent
+    position: 국민의힘 지방의원
+    weight: 1.0
+    verified: false
+  - name: TBD
+    role: opponent
+    position: 국민의힘 지도부
+    weight: 1.0
+    verified: false
+  - name: TBD
+    role: opponent
+    position: 말 안 듣는 공무원·기관장
+    weight: 1.0
+    verified: false
+  - name: TBD
+    role: opponent
+    position: 사법부
+    weight: 1.0
+    verified: false
+  - name: TBD
+    role: opponent
+    position: 언론
+    weight: 1.0
+    verified: false
+  - name: TBD
+    role: opponent
+    position: 카르텔 단체
+    weight: 1.0
+    verified: false
+
+# 조력자
+allies:
+  - name: 이재용
+    role: ally
+    position: 삼성전자 회장
+    weight: 1.0
+    verified: false
+  - name: 정의선
+    role: ally
+    position: 현대차그룹 회장
+    weight: 1.0
+    verified: false
+  - name: 최태원
+    role: ally
+    position: SK그룹 회장
+    weight: 1.0
+    verified: false
+  - name: TBD
+    role: ally
+    position: 신임 장성
+    weight: 1.0
+    verified: false
+
+# 외부 (외국 정상)
+externals:
+  - name: 트럼프
+    role: external
+    position: 미국 대통령
+    weight: 1.0
+    verified: false
+  - name: 시진핑
+    role: external
+    position: 중국 국가주석
+    weight: 1.0
+    verified: false
+  - name: 다카이치
+    role: external
+    position: 일본 총리
+    weight: 1.0
+    verified: false
+
+# 약한 쪽 (조회수가 약해 후순위)
+weak:
+  - name: TBD
+    role: weak
+    position: 여당 국회의원
+    weight: 0.5
+    verified: false
+  - name: TBD
+    role: weak
+    position: 여당 지도부
+    weight: 0.5
+    verified: false

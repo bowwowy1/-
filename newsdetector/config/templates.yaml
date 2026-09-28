@@ -1,0 +1,95 @@
+# 대본 8단계 템플릿
+# 필드: 단계 name, order, 고정 문구, required, length: TBD
+# 총 분량은 정치한줄 대본 40개 평균을 측정해 2단계에서 확정한다.
+
+length:
+  # 정치한줄 대본 40개(data/benchmark/jeongchi_scripts.txt) 를
+  # scripts/measure_length.py 로 측정해 확정했다.
+  # 상세 통계는 data/benchmark/length_stats.json 에 있다.
+  # 기준은 공백 제외 글자 수(count_mode: no_spaces). speech_rate 5.34 가 공백 제외 기준이다.
+  status: confirmed
+  count_mode: no_spaces
+  sample_size: 40
+  target_min: 523       # 공백 제외 하위 25% (Q1 = 523.0)
+  target_max: 559       # 공백 제외 상위 75% (Q3 = 558.75)
+  median: 536           # 공백 제외 중앙값
+  mean: 538.48          # 공백 제외 평균 (참고)
+  min_observed: 479     # 공백 제외 최소 (참고)
+  max_observed: 590     # 공백 제외 최대 (참고)
+  speech_rate: 5.34     # 초당 글자 수 (공백 제외 기준)
+  estimated_seconds:
+    min: 97.9           # target_min ÷ 5.34
+    max: 104.7          # target_max ÷ 5.34
+
+fixed_phrases:
+  opening: "이거 사실이야?"
+  transition: "무슨 내용인지 바로 알려줄게"
+  twist_hook: "이건 몰랐지?"
+  mechanism_hook: "왜냐고?"
+  cta: "~면 구독과 좋아요 부탁하고 여러분의 생각을 댓글로 남겨주세요"
+
+steps:
+  - order: 1
+    name: opening
+    label: 오프닝
+    required: true
+    fixed_phrase: "이거 사실이야?"
+    description: |
+      "이거 사실이야?" + 결과 먼저.
+      누가, 누구에게, 무엇을, 국민 반응.
+
+  - order: 2
+    name: transition
+    label: 전환
+    required: true
+    fixed_phrase: "무슨 내용인지 바로 알려줄게"
+    description: 전환 고정 문구.
+
+  - order: 3
+    name: empathy_and_president
+    label: 공감 + 대통령 쪽 사건
+    required: true
+    description: 발언, 지시, 순방, 성과 등 대통령 쪽 사건을 공감과 함께 붙인다.
+
+  - order: 4
+    name: twist
+    label: 반전
+    required: true
+    starts_with: "근데"
+    description: 악역을 등장시키고 확인된 숫자를 넣는다.
+
+  - order: 5
+    name: hidden_truth
+    label: "이건 몰랐지?"
+    required: true
+    fixed_phrase: "이건 몰랐지?"
+    description: 악역이 그게 가능했던 이유나 숨은 사실.
+
+  - order: 6
+    name: mechanism
+    label: "왜냐고?"
+    required: true
+    fixed_phrase: "왜냐고?"
+    description: 한 겹짜리 메커니즘 설명. 그래서 국민에게 어떤 결과가 났는지.
+
+  - order: 7
+    name: punishment
+    label: 응징
+    required: true
+    description: 대통령이나 정부의 조치.
+
+  - order: 8
+    name: closing_and_cta
+    label: 속 시원한 마무리 + CTA
+    required: true
+    fixed_phrase: "~면 구독과 좋아요 부탁하고 여러분의 생각을 댓글로 남겨주세요"
+    description: 속 시원한 마무리 한마디 + 고정 CTA.
+
+# 사실 경계 체크 대상 (validator 가 3단계에서 사용)
+fact_boundary:
+  check_targets:
+    - 숫자 (금액, 비율, 건수, 기간)
+    - 인과 표현 ("~때문에", "~덕분에", "~해서")
+  do_not_check:
+    - 평가 표현 (참교육, 박살, 뻔뻔한 등)
+    - 프레임 표현

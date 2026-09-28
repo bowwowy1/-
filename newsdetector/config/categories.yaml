@@ -1,0 +1,213 @@
+# 카테고리 서열과 초기 점수
+# 필드: id, name, rank, score, evidence, period_weight, keywords
+# 근거: 정치한줄 썸네일 약 150개의 조회수와 채널 평균 대비 배수.
+# period_weight 는 시기 가중치이며 기본 1.0, 특정 시기(예: 지방선거 직후)에 상향한다.
+
+categories:
+  - id: personnel
+    name: 인사·권력 이동
+    rank: 1
+    score: 100
+    period_weight: 1.0
+    keywords:
+      - 임명
+      - 교체
+      - 사의
+      - 이 타이밍에 왜
+    evidence:
+      - title_summary: 강훈식 사의설 (타이밍)
+        views: 2010000
+        multiplier: 40.5
+      - title_summary: 구윤철 교체
+        views: 1380000
+        multiplier: 6.0
+      - title_summary: 우상호 (인사 관련)
+        views: 950000
+        multiplier: 4.8
+      - title_summary: 육군대장 인사
+        views: 740000
+        multiplier: null
+
+  - id: local_conflict
+    name: 지방정부 충돌
+    rank: 2
+    score: 90
+    period_weight: 1.2
+    period_weight_reason: 2026년 6월 지방선거 직후라 여권 단체장 vs 국힘 지방의회·공무원 구도가 가중된다.
+    keywords:
+      - 여권 단체장
+      - 국힘 지방의회
+      - 공무원
+      - 삭감
+      - 부결
+      - 감사
+    evidence:
+      - title_summary: 오세훈 관련 (서울)
+        views: 1210000
+        multiplier: 2.8
+      - title_summary: 추경호·SK 대구
+        views: 1060000
+        multiplier: 3.7
+      - title_summary: 전재수·부산 공무원
+        views: 750000
+        multiplier: null
+      - title_summary: 경기도 공무원
+        views: 730000
+        multiplier: 6.4
+
+  - id: cartel_punishment
+    name: 기관·카르텔 응징
+    rank: 3
+    score: 80
+    period_weight: 1.0
+    keywords:
+      - 공기업
+      - 협회
+      - 카르텔
+      - 지시 불이행
+      - 적발
+      - 감사 결과
+    evidence:
+      - title_summary: 주한미대사
+        views: 1740000
+        multiplier: 6.5
+      - title_summary: 축구협회
+        views: 970000
+        multiplier: 2.3
+      - title_summary: 도로공사 휴게소 (도성회)
+        views: 910000
+        multiplier: 2.4
+      - title_summary: 공항공사
+        views: 540000
+        multiplier: null
+
+  - id: diplomacy_win
+    name: 외교 승리형
+    rank: 4
+    score: 70
+    period_weight: 1.0
+    keywords:
+      - 상대국 꼬리 내림
+      - 한국에 매달림
+      - 순방
+      - 방한 접견
+      - 정상 통화
+      - 서한
+    evidence:
+      - title_summary: 트럼프 꼬리 내림
+        views: 1210000
+        multiplier: 7.5
+      - title_summary: 캐나다 총리
+        views: 1000000
+        multiplier: 2.4
+      - title_summary: 정의선 캐나다 복수
+        views: 1510000
+        multiplier: 5.8
+
+  - id: chaebol_link
+    name: 재벌 + 대통령 연결
+    rank: 5
+    score: 60
+    period_weight: 1.0
+    keywords:
+      - 삼성
+      - SK
+      - 현대
+      - 방산
+      - 원전
+      - 에너지
+      - 예산
+      - 순방
+      - 약속
+    evidence:
+      - title_summary: 조중동 박살 (재벌·언론 연결)
+        views: 1070000
+        multiplier: null
+      - title_summary: 이재용 머리 꼭대기
+        views: 920000
+        multiplier: null
+    counter_examples:
+      note: 재벌 단독은 약하다. 이재명 연결 없이 재벌만 다루면 조회수가 떨어진다.
+      cases:
+        - title_summary: 이재용 주주
+          views: 22000
+        - title_summary: 삼성 직원
+          views: 46000
+
+# 하위 카테고리 (조회수가 상대적으로 약함)
+lower_categories:
+  - id: trump_general
+    name: 트럼프 일반 소식
+    rank: 6
+    score: 25
+    period_weight: 1.0
+    keywords:
+      - 트럼프
+    evidence:
+      note: 최근 9천~1.6만 회 수준
+
+  - id: china_general
+    name: 중국 소재
+    rank: 7
+    score: 25
+    period_weight: 1.0
+    keywords:
+      - 중국
+      - 시진핑
+    evidence:
+      note: 1.5만~4.6만 회 수준
+
+  - id: ruling_party_critique
+    name: 여당 인물 비판
+    rank: 8
+    score: 20
+    period_weight: 1.0
+    keywords:
+      - 여당
+      - 지도부
+    evidence:
+      - title_summary: 추미애 관련
+        views: 32000
+        multiplier: null
+      - title_summary: 박찬대 공약 철회
+        views: 56000
+        multiplier: null
+
+  - id: approval_rating
+    name: 지지율 정면 보도
+    rank: 9
+    score: 15
+    period_weight: 1.0
+    keywords:
+      - 지지율
+      - 여론조사
+    evidence:
+      note: 2.2만, 6.8만 회 수준
+
+# 보너스·감점 규칙 (4단계 scorer.py 가 최종 점수에 반영)
+modifiers:
+  - id: comparison_frame
+    label: 비교형 프레임
+    delta: +10
+    description: '"~와 비교되는 이대통령" 같은 비교 구도.'
+    evidence:
+      - title_summary: 윤석열 비교 유엔연설
+        views: 330000
+        multiplier: 5.8
+      - title_summary: 최태원·김승연 비교
+        views: 270000
+        multiplier: 5.7
+
+  - id: mystery_timing
+    label: 여권 이슈의 미스터리 프레임
+    delta: +15
+    description: '"이 타이밍에 왜?" 같은 미스터리 훅. 인사·권력 이동 카테고리에 자주 붙는다.'
+    evidence:
+      - title_summary: 강훈식 사의설
+        views: 2010000
+        multiplier: 40.5
+
+  - id: solo_person_no_lee
+    label: 이재명 연결 없는 단독 인물
+    delta: -30
+    description: 이재명 또는 분신과 연결되지 않은 단독 인물 소재는 감점.
