@@ -2,7 +2,20 @@
 # 필드: 단계 name, order, 고정 문구, required, length: TBD
 # 총 분량은 정치한줄 대본 40개 평균을 측정해 2단계에서 확정한다.
 
-length: TBD  # 2단계에서 정치한줄 대본 40개 평균 글자 수로 확정
+length:
+  # 정치한줄 대본 40개의 통계로 확정한다.
+  # 측정 방법: scripts/measure_length.py 실행 (입력: data/benchmark/jeongchi_scripts.txt).
+  # 아래 값은 벤치마크 입력 파일이 아직 저장소에 없어 확정 대기 상태다.
+  # 파일이 채워지면 measure_length.py 를 실행해 data/benchmark/length_stats.json 을 만들고
+  # 그 결과로 target_min / target_max / median 을 채운다.
+  status: pending_input   # jeongchi_scripts.txt 가 있으면 measure_length.py 로 확정한다
+  target_min: TBD         # 공백 포함 하위 25% (Q1)
+  target_max: TBD         # 공백 포함 상위 75% (Q3)
+  median: TBD             # 공백 포함 중앙값
+  speech_rate: 5.34       # 초당 글자 수 (기존 기준 유지)
+  estimated_seconds:
+    min: TBD              # target_min ÷ 5.34
+    max: TBD              # target_max ÷ 5.34
 
 fixed_phrases:
   opening: "이거 사실이야?"
