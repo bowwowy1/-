@@ -1,17 +1,19 @@
 # 테스트 전용 templates.yaml
-# 프로덕션 config/templates.yaml 의 length 가 아직 확정 대기(TBD)인 동안에도
-# validator 를 완전 검증하기 위한 테스트용 값을 고정한다.
-# (정치한줄 대본 40개 통계로 length 를 확정하면 프로덕션 templates.yaml 만 갱신하면 된다.)
+# 프로덕션 config/templates.yaml 의 실제 값과는 별개로,
+# fixture 대본의 길이에 맞춰 잡은 테스트용 length 값이다.
+# 분량 기준은 프로덕션과 같은 공백 제외(count_mode: no_spaces)로 통일했다.
+# (good.md 공백 제외 359자, bad_6.md 150자 → 340~400 범위가 good 만 통과시킨다)
 
 length:
   status: confirmed
-  target_min: 450
-  target_max: 580
-  median: 515
+  count_mode: no_spaces
+  target_min: 340
+  target_max: 400
+  median: 370
   speech_rate: 5.34
   estimated_seconds:
-    min: 84
-    max: 109
+    min: 63.7
+    max: 74.9
 
 fixed_phrases:
   opening: "이거 사실이야?"

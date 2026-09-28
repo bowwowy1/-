@@ -6,18 +6,20 @@ length:
   # 정치한줄 대본 40개(data/benchmark/jeongchi_scripts.txt) 를
   # scripts/measure_length.py 로 측정해 확정했다.
   # 상세 통계는 data/benchmark/length_stats.json 에 있다.
+  # 기준은 공백 제외 글자 수(count_mode: no_spaces). speech_rate 5.34 가 공백 제외 기준이다.
   status: confirmed
+  count_mode: no_spaces
   sample_size: 40
-  target_min: 697       # 공백 포함 하위 25% (Q1 = 697.25)
-  target_max: 749       # 공백 포함 상위 75% (Q3 = 749.25)
-  median: 720           # 공백 포함 중앙값
-  mean: 722.38          # 공백 포함 평균 (참고)
-  min_observed: 651     # 공백 포함 최소 (참고)
-  max_observed: 788     # 공백 포함 최대 (참고)
-  speech_rate: 5.34     # 초당 글자 수 (기존 기준 유지)
+  target_min: 523       # 공백 제외 하위 25% (Q1 = 523.0)
+  target_max: 559       # 공백 제외 상위 75% (Q3 = 558.75)
+  median: 536           # 공백 제외 중앙값
+  mean: 538.48          # 공백 제외 평균 (참고)
+  min_observed: 479     # 공백 제외 최소 (참고)
+  max_observed: 590     # 공백 제외 최대 (참고)
+  speech_rate: 5.34     # 초당 글자 수 (공백 제외 기준)
   estimated_seconds:
-    min: 130.5          # target_min ÷ 5.34
-    max: 140.3          # target_max ÷ 5.34
+    min: 97.9           # target_min ÷ 5.34
+    max: 104.7          # target_max ÷ 5.34
 
 fixed_phrases:
   opening: "이거 사실이야?"

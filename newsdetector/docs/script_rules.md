@@ -12,13 +12,14 @@
 
 ## 분량
 - 정치한줄 대본 40개(`data/benchmark/jeongchi_scripts.txt`) 를 `scripts/measure_length.py` 로 측정해 확정했다. 상세 통계는 `data/benchmark/length_stats.json`.
-- 확정 값 (공백 포함, 40개 표본):
-  - `target_min`: 697자 (Q1 = 697.25)
-  - `target_max`: 749자 (Q3 = 749.25)
-  - `median`: 720자 (중앙값)
-  - 참고: 평균 722.38, 최소 651, 최대 788
-  - `speech_rate`: 5.34 (초당 글자 수, 기존 기준 유지)
-  - 예상 재생 시간: 697자 ÷ 5.34 ≈ **130.5초**, 749자 ÷ 5.34 ≈ **140.3초**
+- **기준은 공백 제외 글자 수** (`count_mode: no_spaces`). `speech_rate` 5.34 가 공백 제외 기준이기 때문에 분량 검사도 같은 기준으로 통일한다.
+- 확정 값 (공백 제외, 40개 표본):
+  - `target_min`: 523자 (Q1 = 523.0)
+  - `target_max`: 559자 (Q3 = 558.75)
+  - `median`: 536자 (중앙값)
+  - 참고: 평균 538.48, 최소 479, 최대 590
+  - `speech_rate`: 5.34 (초당 글자 수, 공백 제외 기준)
+  - 예상 재생 시간: 523자 ÷ 5.34 ≈ **97.9초**, 559자 ÷ 5.34 ≈ **104.7초**
 - 재측정: 벤치마크 파일이 갱신되면 `python3 scripts/measure_length.py` 를 다시 실행해 `config/templates.yaml` 의 `length` 항목을 갱신한다.
 
 ## 사실 경계 체크 대상

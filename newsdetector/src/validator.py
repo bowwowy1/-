@@ -181,10 +181,16 @@ def check_script(
     if cta_tail not in body[-len(cta_tail) - 40:]:
         result.add(5, "FAIL", "고정 CTA", "마지막 문장에 고정 CTA가 없음")
 
-    # 규칙 6/10: 분량 검사 (공백 포함)
+    # 규칙 6/10: 분량 검사
     tmin = length_cfg.get("target_min")
     tmax = length_cfg.get("target_max")
-    length = len(body)
+    count_mode = length_cfg.get("count_mode", "with_spaces")
+    if count_mode == "no_spaces":
+        length = len(re.sub(r"\s+", "", body))
+        mode_label = "공백 제외"
+    else:
+        length = len(body)
+        mode_label = "공백 포함"
     if isinstance(tmin, (int, float)) and isinstance(tmax, (int, float)):
         if tmin <= length <= tmax:
             pass
@@ -197,21 +203,21 @@ def check_script(
                     10,
                     "WARN",
                     "분량 근접 위반",
-                    f"길이 {length} 자, 목표 {tmin}~{tmax} 자에서 ±5% 안",
+                    f"길이 {length} 자 ({mode_label}), 목표 {tmin}~{tmax} 자에서 ±5% 안",
                 )
             else:
                 result.add(
                     6,
                     "FAIL",
                     "분량 범위",
-                    f"길이 {length} 자, 목표 {tmin}~{tmax} 자 (공백 포함) 밖",
+                    f"길이 {length} 자 ({mode_label}), 목표 {tmin}~{tmax} 자 밖",
                 )
     else:
         result.add(
             6,
             "WARN",
             "분량 범위 미확정",
-            f"templates.yaml length 가 확정되지 않음 (target_min={tmin}, target_max={tmax}). 길이 {length} 자.",
+            f"templates.yaml length 가 확정되지 않음 (target_min={tmin}, target_max={tmax}). 길이 {length} 자 ({mode_label}).",
         )
 
     # 규칙 7: 대본 속 숫자가 팩트체크 목록에 URL 과 함께 있음
