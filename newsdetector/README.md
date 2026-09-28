@@ -155,3 +155,33 @@ B: 쿠팡 갑질 논란 '납품업체 단가 강제 인하' (조선비즈, 01-16
 - 점수 임계값: 80+ CONFIRMED, 50~79 CANDIDATE, 50 미만 REJECTED
 - 이 예시에서는 8개 페어가 CONFIRMED로 판정됐다.
 - 산출 JSON: `data/scored/YYYY-MM-DD.json`
+
+## 5단계 실행 예시
+네이버 뉴스 API 로 기사를 수집해 SQLite (`news.db`) 에 쌓고, scorer 가 읽는 형식으로 내보낸 뒤 채점하는 하루 파이프라인이다.
+
+사전 준비
+- `.env.example` 을 복사해 `.env` 를 만들고 `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET` 을 채운다.
+- `pip install -r requirements.txt` 로 `requests`, `python-dotenv` 설치.
+
+세 단계 실행
+```bash
+# 1) 수집: config/queries.yaml 의 쿼리들로 네이버 뉴스 API 를 두드려 news.db 에 저장
+python3 -m src.collector
+
+# 2) 내보내기: 최근 3일치를 scorer 가 읽는 JSON 으로 변환
+python3 -m src.export_for_scorer --days 3
+
+# 3) 채점: 4단계 scorer 에 넣어 CONFIRMED 페어를 뽑는다
+python3 -m src.scorer data/collected/YYYY-MM-DD.json
+```
+
+- `news.db` 는 `.gitignore` 로 제외된다. 스키마는 `articles` + `collection_runs` 두 테이블.
+- 같은 `link` 는 `INSERT OR IGNORE` 로 자동 중복 제거된다.
+- 호출 간 200ms 대기. 하루 25,000건 한도를 넘지 않도록 쿼리 수를 관리한다.
+- 콘솔 출력 예:
+  ```
+  [1/47] "이재명 국무회의" → 100건 조회, 신규 23건 저장
+  [2/47] "김상욱 시의회" → 100건 조회, 신규 5건 저장 (중복 95건 스킵)
+  ...
+  총 47개 쿼리, 4,700건 조회, 신규 812건 저장
+  ```
